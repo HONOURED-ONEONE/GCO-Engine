@@ -10,7 +10,7 @@ from components import render_bounds_chart, render_gauge
 API_BASE = "http://localhost:8000"
 BATCH_DIR = os.path.join(os.getcwd(), "data", "batches")
 
-st.set_page_config(page_title="GCO Engine - Phase 2", layout="wide")
+st.set_page_config(page_title="GCO Engine - Phase 3", layout="wide")
 
 # --- INITIALIZATION & PREFETCH ---
 if 'current_mode' not in st.session_state:
@@ -38,7 +38,7 @@ def refresh_mode():
         st.error(f"Failed to refresh mode: {e}")
 
 st.title("Golden Corridor Optimization Engine")
-st.caption("Phase 2 – Real-Time Optimization Loop & Pseudo-NMPC")
+st.caption("Phase 3 – KPI Ingestion, MARL Proposals & Human Approval")
 
 # --- SIDEBAR: Optimization Mode & Health ---
 st.sidebar.header("Optimization Mode")
@@ -97,45 +97,42 @@ if st.sidebar.button("Refresh Health"):
 
 # --- MAIN AREA ---
 
-tabs = st.tabs(["Live Recommendation", "Preview Loop", "Governance & KPI"])
+tabs = st.tabs(["Optimization Loop", "Batch KPIs", "Proposals", "Versions & Diff", "Audit Log"])
 
 batch_files = []
 if os.path.exists(BATCH_DIR):
     batch_files = sorted([f.replace(".csv", "") for f in os.listdir(BATCH_DIR) if f.endswith(".csv")])
 
-# 1. LIVE RECOMMENDATION TAB
+# 1. OPTIMIZATION LOOP TAB (Combined Live & Preview for brevity)
 with tabs[0]:
     if not batch_files:
         st.warning("No batch data found. Please run 'make data' first.")
     else:
         col1, col2 = st.columns([1, 2])
         with col1:
+            st.subheader("Single Step Recommendation")
             selected_batch = st.selectbox("Select Batch", batch_files, key="live_batch")
             df = pd.read_csv(os.path.join(BATCH_DIR, f"{selected_batch}.csv"))
             ts_options = df['ts'].tolist()
             selected_ts = st.select_slider("Select Timestamp", options=ts_options, key="live_ts")
-            current_row = df[df['ts'] == selected_ts].iloc[0]
-            
-            st.subheader("Optimizer Tuning (Hints)")
-            h_iters = st.slider("Max Iterations", 1, 20, 8)
-            h_temp = st.slider("Temp Step (delta)", 0.1, 2.0, 1.0)
-            h_flow = st.slider("Flow Step (delta)", 0.05, 0.5, 0.25)
             
             if st.button("Recommend Setpoints", type="primary"):
                 rec_resp = requests.post(f"{API_BASE}/optimize/recommend", json={
                     "batch_id": selected_batch,
-                    "ts": selected_ts,
-                    "hints": {
-                        "max_iters": h_iters,
-                        "delta_temp": h_temp,
-                        "delta_flow": h_flow
-                    }
+                    "ts": selected_ts
                 })
                 if rec_resp.status_code == 200:
                     st.session_state['recommendation'] = rec_resp.json()
                     st.success("Recommendation Received")
-                else:
-                    st.error("Failed to get recommendation")
+            
+            st.divider()
+            st.subheader("Pseudo-NMPC Preview")
+            p_horizon = st.slider("Horizon Steps", 10, 50, 20)
+            if st.button("Run Preview Loop"):
+                with st.spinner("Simulating..."):
+                    p_resp = requests.get(f"{API_BASE}/optimize/preview", params={"batch_id": selected_batch, "window": p_horizon})
+                    if p_resp.status_code == 200:
+                        st.session_state['preview'] = p_resp.json()
 
         with col2:
             if 'recommendation' in st.session_state:
@@ -145,144 +142,116 @@ with tabs[0]:
                 c1.metric("Temperature (°C)", rec['setpoints']['temperature'], delta=round(rec['nudge_applied']['temperature'], 2))
                 c2.metric("Flow (L/min)", rec['setpoints']['flow'], delta=round(rec['nudge_applied']['flow'], 2))
                 c3.metric("Compute Time", f"{rec['compute_ms']} ms")
-                
                 st.info(f"**Rationale:** {rec['rationale']}")
-                
-                st.subheader("Objective Breakdown")
-                breakdown = rec['objective_breakdown']
-                st.bar_chart(pd.Series({k: v for k, v in breakdown.items() if k != 'total'}))
-                
-                st.subheader("Constraint Verification")
-                st.write(f"Within Bounds: {rec['within_bounds']}")
-                st.json(rec['constraints'])
-            else:
-                st.info("Select a timestamp and click 'Recommend Setpoints' to see results.")
-
-# 2. PREVIEW LOOP TAB
-with tabs[1]:
-    st.header("Pseudo-NMPC Preview")
-    if not batch_files:
-        st.warning("No batch data found.")
-    else:
-        p_col1, p_col2 = st.columns([1, 3])
-        with p_col1:
-            p_batch = st.selectbox("Select Batch", batch_files, key="prev_batch")
-            p_horizon = st.slider("Horizon Steps", 10, 50, 20)
-            p_step = st.slider("Step Interval (sec)", 2, 10, 5)
             
-            if st.button("Run Preview Loop", type="primary"):
-                with st.spinner("Simulating future steps..."):
-                    p_resp = requests.get(f"{API_BASE}/optimize/preview", params={
-                        "batch_id": p_batch,
-                        "window": p_horizon,
-                        "step_sec": p_step
-                    })
-                    if p_resp.status_code == 200:
-                        st.session_state['preview'] = p_resp.json()
-                    else:
-                        st.error("Preview simulation failed")
-        
-        with p_col2:
             if 'preview' in st.session_state:
                 prev = st.session_state['preview']
-                st.caption(f"Note: {prev['note']} | Compute: {prev['compute_ms']}ms")
-                
                 pts = prev['points']
-                pdf = pd.DataFrame([
-                    {
-                        "ts": p['ts'],
-                        "T_actual": p['state']['temperature'],
-                        "T_rec": p['setpoints']['temperature'],
-                        "T_lower": p['bounds']['temperature'][0],
-                        "T_upper": p['bounds']['temperature'][1],
-                        "F_actual": p['state']['flow'],
-                        "F_rec": p['setpoints']['flow'],
-                        "F_lower": p['bounds']['flow'][0],
-                        "F_upper": p['bounds']['flow'][1],
-                        "Objective": p['objective_total']
-                    } for p in pts
-                ])
+                pdf = pd.DataFrame([{"ts": p['ts'], "T_actual": p['state']['temperature'], "T_rec": p['setpoints']['temperature'], "T_lower": p['bounds']['temperature'][0], "T_upper": p['bounds']['temperature'][1]} for p in pts])
                 pdf['ts'] = pd.to_datetime(pdf['ts'])
-                pdf = pdf.set_index('ts')
-                
-                st.subheader("Temperature Preview")
-                st.line_chart(pdf[['T_actual', 'T_rec', 'T_lower', 'T_upper']])
-                
-                st.subheader("Flow Preview")
-                st.line_chart(pdf[['F_actual', 'F_rec', 'F_lower', 'F_upper']])
-                
-                st.subheader("Predicted Objective (Lower is Better)")
-                st.area_chart(pdf['Objective'])
-            else:
-                st.info("Run a preview loop to see simulated results.")
+                st.line_chart(pdf.set_index('ts')[['T_actual', 'T_rec', 'T_lower', 'T_upper']])
 
-# 3. GOVERNANCE & KPI TAB
-with tabs[2]:
-    st.header("KPI Ingestion & Corridor Governance")
-    
-    # KPI Ingestion
-    with st.expander("End-of-Batch KPI Ingestion", expanded=False):
-        with st.form("kpi_form"):
-            k_batch = st.selectbox("Batch ID", batch_files, key="k_batch") if batch_files else st.text_input("Batch ID")
+# 2. BATCH KPIs TAB
+with tabs[1]:
+    st.header("End-of-Batch KPI Ingestion")
+    k1, k2 = st.columns([1, 2])
+    with k1:
+        with st.form("kpi_form_p3"):
+            k_batch = st.selectbox("Batch ID", batch_files, key="k_batch_p3") if batch_files else st.text_input("Batch ID")
             k_energy = st.number_input("Energy Consumed (kWh)", min_value=0.0, value=45.0)
             k_yield = st.number_input("Yield (%)", min_value=0.0, max_value=100.0, value=92.5)
             k_quality = st.checkbox("Quality Deviation Flag")
-            
-            if st.form_submit_button("Submit KPIs"):
-                try:
-                    kpi_resp = requests.post(f"{API_BASE}/kpi/ingest", json={
-                        "batch_id": k_batch,
-                        "energy_kwh": k_energy,
-                        "yield_pct": k_yield,
-                        "quality_deviation": k_quality
-                    })
-                    if kpi_resp.status_code == 200:
-                        st.success(kpi_resp.json()['message'])
-                        if kpi_resp.json()['anomaly_flag']:
-                            st.warning("Anomaly detected in batch KPIs!")
-                    else:
-                        st.error("KPI ingestion failed")
-                except Exception as e:
-                    st.error(f"Connection error: {e}")
-
-    st.divider()
+            if st.form_submit_button("Ingest KPI"):
+                resp = requests.post(f"{API_BASE}/kpi/ingest", json={"batch_id": k_batch, "energy_kwh": k_energy, "yield_pct": k_yield, "quality_deviation": k_quality})
+                if resp.status_code == 200:
+                    data = resp.json()
+                    st.success(f"KPI {data['message']}!")
+                    if data['marl_proposal_created']:
+                        st.info(f"MARL Proposal Generated: {data['proposal_id']}")
+                    if data['anomaly_flag']:
+                        st.warning("Anomaly Detected!")
+                else: st.error("Ingestion failed")
     
-    # Corridor Governance
-    prop_col, hist_col = st.columns(2)
-    with prop_col:
-        st.subheader("Pending Proposals")
-        try:
-            pending_resp = requests.get(f"{API_BASE}/corridor/proposals/pending")
-            if pending_resp.status_code == 200:
-                proposals = pending_resp.json()
-                if not proposals:
-                    st.write("No pending proposals.")
-                for p in proposals:
-                    with st.expander(f"Proposal {p['id']} - {p['created_at']}"):
-                        st.write(f"**Evidence:** {p['evidence']}")
-                        st.json(p['delta'])
-                        decision = st.radio(f"Decision for {p['id']}", ["approve", "reject"], key=f"radio_{p['id']}")
-                        notes = st.text_input("Notes", key=f"notes_{p['id']}")
-                        if st.button(f"Submit Decision for {p['id']}"):
-                            app_resp = requests.post(f"{API_BASE}/corridor/approve", json={
-                                "proposal_id": p['id'],
-                                "decision": decision,
-                                "notes": notes
-                            })
-                            if app_resp.status_code == 200:
-                                st.success(f"Proposal {decision}d")
-                                # Clear cache by calling API or waiting
-                                st.rerun()
-        except Exception as e:
-            st.error(f"Could not fetch proposals: {e}")
+    with k2:
+        st.subheader("Recent KPI Items")
+        r_resp = requests.get(f"{API_BASE}/kpi/recent", params={"limit": 10})
+        if r_resp.status_code == 200:
+            kpis = r_resp.json()['items']
+            if kpis:
+                kdf = pd.DataFrame(kpis)
+                st.dataframe(kdf[['batch_id', 'energy_kwh', 'yield_pct', 'quality_deviation', 'anomaly_flag', 'ingested_at']])
+            else: st.write("No KPIs yet.")
 
-    with hist_col:
+# 3. PROPOSALS TAB
+with tabs[2]:
+    st.header("Corridor Update Proposals (Mock MARL)")
+    p_resp = requests.get(f"{API_BASE}/corridor/proposals", params={"status": "pending"})
+    if p_resp.status_code == 200:
+        proposals = p_resp.json()['items']
+        if not proposals:
+            st.info("No pending proposals found.")
+        else:
+            for p in proposals:
+                with st.container(border=True):
+                    c1, c2 = st.columns([2, 1])
+                    with c1:
+                        st.subheader(f"Proposal {p['id']}")
+                        st.write(f"**Summary:** {p['evidence']['summary']}")
+                        st.write(f"**Confidence:** {p['evidence']['confidence']:.2f}")
+                        st.write(f"**KPI Window:** {', '.join(p['evidence']['kpi_window'])}")
+                        st.markdown("**Metrics:**")
+                        st.json(p['evidence']['metrics'])
+                    with c2:
+                        st.markdown("**Proposed Delta:**")
+                        st.json(p['delta'])
+                        decision = st.radio(f"Decision {p['id']}", ["approve", "reject"], horizontal=True)
+                        notes = st.text_input("Approval Notes", key=f"note_{p['id']}")
+                        if st.button(f"Submit Decision", key=f"btn_{p['id']}"):
+                            app_resp = requests.post(f"{API_BASE}/corridor/approve", json={"proposal_id": p['id'], "decision": decision, "notes": notes})
+                            if app_resp.status_code == 200:
+                                st.success(f"Decision submitted: {decision}")
+                                time.sleep(1)
+                                st.rerun()
+
+# 4. VERSIONS & DIFF TAB
+with tabs[3]:
+    st.header("Corridor Versioning & Governance")
+    v_resp = requests.get(f"{API_BASE}/corridor/version")
+    if v_resp.status_code == 200:
+        v_data = v_resp.json()
+        st.subheader(f"Current Active: {v_data['active_version']}")
+        st.json(v_data['bounds'])
+        
+        st.divider()
         st.subheader("Version History")
-        try:
-            corridor_resp = requests.get(f"{API_BASE}/corridor/version")
-            if corridor_resp.status_code == 200:
-                corridor_data = corridor_resp.json()
-                st.write(f"**Current Version:** {corridor_data['active_version']}")
-                st.table(corridor_data['history'])
-        except Exception:
-            st.write("Could not fetch version history.")
+        h_df = pd.DataFrame(v_data['history'])
+        st.dataframe(h_df, use_container_width=True)
+        
+        st.divider()
+        st.subheader("Diff Viewer")
+        all_versions = [h['version'] for h in v_data['history']]
+        if len(all_versions) >= 2:
+            col_f, col_t = st.columns(2)
+            from_v = col_f.selectbox("From Version", all_versions, index=max(0, len(all_versions)-2))
+            to_v = col_t.selectbox("To Version", all_versions, index=len(all_versions)-1)
+            if st.button("Compare Versions"):
+                d_resp = requests.get(f"{API_BASE}/corridor/diff", params={"from_v": from_v, "to_v": to_v})
+                if d_resp.status_code == 200:
+                    diff = d_resp.json()
+                    st.write(f"**Impact Hints:**")
+                    st.json(diff['impact_hints'])
+                    st.write("**Boundary Changes:**")
+                    st.json(diff['changes'])
+        else:
+            st.info("At least two versions are required for comparison.")
+
+# 5. AUDIT LOG TAB
+with tabs[4]:
+    st.header("System Audit Trail")
+    a_resp = requests.get(f"{API_BASE}/corridor/audit", params={"limit": 50})
+    if a_resp.status_code == 200:
+        audits = a_resp.json()['items']
+        adf = pd.DataFrame(audits)
+        if not adf.empty:
+            st.dataframe(adf[['at', 'type', 'data']], use_container_width=True)
+        else: st.write("Audit log is empty.")

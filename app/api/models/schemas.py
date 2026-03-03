@@ -80,14 +80,54 @@ class KPIIngestResponse(BaseModel):
     ok: bool
     anomaly_flag: bool
     message: str
+    marl_proposal_created: bool
+    proposal_id: Optional[str] = None
+
+class KPIItem(BaseModel):
+    batch_id: str
+    energy_kwh: float
+    yield_pct: float
+    quality_deviation: bool
+    ingested_at: str
+    anomaly_flag: bool
+    hash: str
+
+class KPIRecentResponse(BaseModel):
+    items: List[KPIItem]
+    count: int
+
+class CorridorDelta(BaseModel):
+    temperature_upper: Optional[float] = 0.0
+    temperature_lower: Optional[float] = 0.0
+    flow_upper: Optional[float] = 0.0
+    flow_lower: Optional[float] = 0.0
+
+class ProposalEvidence(BaseModel):
+    summary: str
+    kpi_window: List[str]
+    metrics: Dict[str, float]
+    confidence: float
 
 class CorridorProposeRequest(BaseModel):
     delta: Dict[str, float]
-    evidence: str
+    evidence: ProposalEvidence
+
+class CorridorProposal(BaseModel):
+    id: str
+    status: Literal["pending", "approved", "rejected"]
+    delta: Dict[str, float]
+    evidence: ProposalEvidence
+    created_at: str
+    decided_at: Optional[str] = None
+    decided_by: Optional[str] = None
+    notes: Optional[str] = None
 
 class CorridorProposeResponse(BaseModel):
     proposal_id: str
-    status: Literal["pending", "rejected", "approved"]
+    status: str
+
+class CorridorProposalsResponse(BaseModel):
+    items: List[CorridorProposal]
 
 class CorridorApproveRequest(BaseModel):
     proposal_id: str
@@ -97,8 +137,25 @@ class CorridorApproveRequest(BaseModel):
 class CorridorApproveResponse(BaseModel):
     status: str
     new_version: Optional[str] = None
+    active_bounds: Optional[Dict[str, Dict[str, float]]] = None
+    cache_invalidation: List[str] = []
+    message: str
 
 class CorridorVersionResponse(BaseModel):
     active_version: str
     bounds: Dict[str, Dict[str, float]]
     history: List[Dict]
+
+class AuditEntry(BaseModel):
+    at: str
+    type: str
+    data: Dict[str, Any]
+
+class CorridorAuditResponse(BaseModel):
+    items: List[AuditEntry]
+
+class CorridorDiffResponse(BaseModel):
+    from_version: str
+    to_version: str
+    changes: Dict[str, Dict[str, Any]]
+    impact_hints: Dict[str, str]

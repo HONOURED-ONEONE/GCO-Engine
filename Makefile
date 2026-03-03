@@ -15,6 +15,14 @@ run-api:
 run-frontend:
 	python3 -m streamlit run app/frontend/app.py
 
+demo-proposals:
+	@echo "Seeding KPIs to trigger a proposal..."
+	@curl -X POST http://localhost:8000/kpi/ingest -H "Content-Type: application/json" -d '{"batch_id":"B101", "energy_kwh":100.0, "yield_pct":90.0, "quality_deviation":false}'
+	@curl -X POST http://localhost:8000/kpi/ingest -H "Content-Type: application/json" -d '{"batch_id":"B102", "energy_kwh":95.0, "yield_pct":90.5, "quality_deviation":false}'
+	@curl -X POST http://localhost:8000/kpi/ingest -H "Content-Type: application/json" -d '{"batch_id":"B103", "energy_kwh":90.0, "yield_pct":91.0, "quality_deviation":false}'
+	@echo "Opening Proposals tab (approx)..."
+	@echo "Check: http://localhost:8501"
+
 test:
 	python3 -m pytest tests/ -v
 

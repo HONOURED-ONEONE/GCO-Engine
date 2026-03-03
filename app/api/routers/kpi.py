@@ -1,31 +1,30 @@
-from fastapi import APIRouter
-from app.api.models.schemas import KPIIngestRequest, KPIIngestResponse
-from app.api.utils.io import read_json, write_json, KPI_STORE_FILE
-from app.api.services.marl import maybe_propose_update
+from typing import Optional
+from fastapi import APIRouter, Query
+from app.api.models.schemas import KPIIngestRequest, KPIIngestResponse, KPIRecentResponse
+from app.api.services.kpi import ingest_kpi_service, get_recent_kpis
 
 router = APIRouter()
 
 @router.post("/ingest", response_model=KPIIngestResponse)
 async def ingest_kpi(request: KPIIngestRequest):
-    store = read_json(KPI_STORE_FILE)
-    if "items" not in store:
-        store["items"] = []
+    anomaly, is_updated, prop_id = ingest_kpi_service(
+        request.batch_id, 
+        request.energy_kwh, 
+        request.yield_pct, 
+        request.quality_deviation
+    )
     
-    store["items"].append(request.dict())
-    write_json(KPI_STORE_FILE, store)
-    
-    # Anomaly Rule: yield < 80 or quality issues
-    anomaly = request.quality_deviation or request.yield_pct < 80.0
-    
-    # Mock MARL check
-    prop_id = maybe_propose_update()
-    
-    message = "KPI ingested successfully."
-    if prop_id:
-        message += f" New corridor proposal triggered: {prop_id}"
+    message = "ingested" if not is_updated else "updated"
     
     return KPIIngestResponse(
         ok=True,
         anomaly_flag=anomaly,
-        message=message
+        message=message,
+        marl_proposal_created=prop_id is not None,
+        proposal_id=prop_id
     )
+
+@router.get("/recent", response_model=KPIRecentResponse)
+async def recent_kpis(limit: int = Query(50, ge=1, le=100)):
+    items = get_recent_kpis(limit)
+    return KPIRecentResponse(items=items, count=len(items))

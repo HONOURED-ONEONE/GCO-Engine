@@ -19,3 +19,13 @@ class TTLCache:
     def set(self, key: str, value: Any):
         self.cache[key] = value
         self.expire_at[key] = time.time() + self.ttl_sec
+
+    def delete(self, key: str):
+        if key in self.cache:
+            del self.cache[key]
+        if key in self.expire_at:
+            del self.expire_at[key]
+
+    def clear(self):
+        self.cache = {}
+        self.expire_at = {}
