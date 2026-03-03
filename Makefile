@@ -1,19 +1,27 @@
-.PHONY: install data api ui dev
+.PHONY: install run-api run-frontend test reset-mode demo-mode data
 
 install:
-	python3 -m venv venv
-	./venv/bin/pip install -r requirements.txt
+	pip install -r requirements.txt
 
 data:
-	./venv/bin/python3 scripts/gen_synth_data.py
+	python scripts/gen_synth_data.py
 
-api:
-	./venv/bin/uvicorn app.api.main:app --reload --port 8000
+run-api:
+	uvicorn app.api.main:app --reload --port 8000
 
-ui:
-	./venv/bin/streamlit run app/frontend/app.py
+run-frontend:
+	streamlit run app.frontend/app.py
 
-dev:
-	@echo "To run in development mode:"
-	@echo "1. In one terminal: make api"
-	@echo "2. In another terminal: make ui"
+test:
+	pytest tests/test_mode.py -v
+
+reset-mode:
+	@echo "Restoring defaults in version_registry.json..."
+	@python -c "import json; d=json.load(open('data/version_registry.json')); d['last_mode']='sustainability_first'; d['last_mode_weights']={'energy':0.6,'quality':0.25,'yield':0.15}; d['audit']={'mode_changes':[]}; json.dump(d, open('data/version_registry.json','w'), indent=2)"
+	@echo "Done."
+
+demo-mode:
+	@echo "Starting GCO Engine Phase 1 Demo..."
+	@echo "API: http://localhost:8000"
+	@echo "Frontend: http://localhost:8501"
+	(make run-api & make run-frontend)

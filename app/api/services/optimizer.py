@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 from typing import Dict, Any
-from app.api.services.mode import get_current_weights
+from app.api.services.mode import get_current_mode_data
 from app.api.services.corridor import get_active_corridor
 from app.api.utils.io import BASE_DATA_DIR
 
@@ -17,7 +17,9 @@ def recommend_setpoints(batch_id: str, ts: str):
         return None, "Timestamp not found in batch", False, {}
 
     row = row.iloc[0]
-    weights = get_current_weights()
+    mode_data = get_current_mode_data()
+    weights = mode_data["weights"]
+    
     _, corridor = get_active_corridor()
     bounds = corridor["bounds"]
     

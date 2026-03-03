@@ -1,46 +1,54 @@
-# Golden Corridor Optimization (GCO) Engine - Phase 0
+# Golden Corridor Optimization Engine (Track B)
 
-Minimal Working Skeleton for the GCO Engine MVP. This version uses Python, FastAPI, and Streamlit with local JSON persistence.
+## Overview
+GCO Engine is a production-like optimization platform for industrial corridors, focusing on balancing energy, quality, and yield.
 
-## Features
-- **Six Core Endpoints:** Mode setting, Optimization recommendations, KPI ingestion, Corridor proposals, Approvals, and Versioning.
-- **Pseudo-Optimizer:** Nudges process variables (temperature, flow) based on chosen optimization mode.
-- **Mock MARL:** Automatically triggers corridor bound updates based on recent batch performance.
-- **Local Persistence:** All state stored in `data/*.json`.
-- **Synthetic Data:** Generator for time-series batch data.
+## Phase 1 – Mode Configuration & Hardening (Current)
+Phase 1 evolves the basic mode toggle into a robust module with validation, persistence, and audit logging.
 
-## Quickstart
+### Key Features
+- **Backend (FastAPI)**: Hardened endpoints for setting and getting optimization modes.
+- **Services**: Centralized logic for mode definitions and audit logging.
+- **Persistence**: Safe file-backed JSON storage with locking for concurrent writes.
+- **Frontend (Streamlit)**: Enhanced UI for mode management and policy visualization.
+- **Testing**: Comprehensive unit and integration tests for mode operations.
 
-### 1. Installation
-```bash
-make install
-```
+### Allowed Modes
+- `sustainability_first`: Energy=0.60, Quality=0.25, Yield=0.15
+- `production_first`: Energy=0.25, Quality=0.35, Yield=0.40
 
-### 2. Generate Synthetic Data
-```bash
-make data
-```
+## Getting Started
 
-### 3. Run the API
-In one terminal:
-```bash
-make api
-```
+1. **Install Dependencies**:
+   ```bash
+   make install
+   ```
 
-### 4. Run the UI
-In another terminal:
-```bash
-make ui
-```
+2. **Generate Synthetic Data**:
+   ```bash
+   make data
+   ```
 
-## Project Structure
-- `app/api/`: FastAPI backend (routers, models, services).
-- `app/frontend/`: Streamlit UI.
-- `data/`: JSON persistence and batch CSVs.
-- `scripts/`: Data generation scripts.
+3. **Run the API**:
+   ```bash
+   make run-api
+   ```
 
-## Usage Flow
-1. **Select Mode:** Choose "Sustainability-first" or "Production-first" in the sidebar.
-2. **Explore Batch:** Use the slider to view different points in time and see recommendations.
-3. **Ingest KPIs:** Submit end-of-batch results. After 3 submissions, a proposal might be triggered.
-4. **Approve Proposals:** Review and approve corridor changes in the Governance section.
+4. **Run the Frontend**:
+   ```bash
+   make run-frontend
+   ```
+
+5. **Run Tests**:
+   ```bash
+   make test
+   ```
+
+## Development Commands
+- `make reset-mode`: Restore default optimization mode in the registry.
+- `make demo-mode`: Start both API and Frontend for a quick demo.
+
+## Data Structure
+- `data/version_registry.json`: Tracks active mode, weights, and audit history.
+- `data/corridor.json`: Stores corridor bounds and version history.
+- `data/kpi_store.json`: Stores end-of-batch KPI records.

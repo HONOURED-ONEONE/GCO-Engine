@@ -6,3 +6,5 @@ pandas
 numpy
 python-multipart
 requests
+pytest
+httpx

@@ -1,12 +1,33 @@
 from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel
+from datetime import datetime
 
 class ModeSetRequest(BaseModel):
-    mode: Literal["sustainability_first", "production_first"]
+    mode: str
+    operator_id: Optional[str] = "stubbed-operator"
 
 class ModeSetResponse(BaseModel):
     mode: str
     weights: Dict[str, float]
+    changed: bool
+    changed_at: datetime
+    message: str
+
+class ModeCurrentResponse(BaseModel):
+    mode: str
+    weights: Dict[str, float]
+    changed_at: datetime
+    operator_id: str
+
+class ModePolicyItem(BaseModel):
+    id: str
+    label: str
+    weights: Dict[str, float]
+    description: str
+
+class ModePolicyResponse(BaseModel):
+    allowed_modes: List[ModePolicyItem]
+    notes: str
 
 class OptimizeRecommendRequest(BaseModel):
     batch_id: str

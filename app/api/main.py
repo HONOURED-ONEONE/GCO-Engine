@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import mode, optimize, kpi, corridor
 from app.api.utils.io import init_files
 
-app = FastAPI(title="Golden Corridor Optimization Engine (Phase 0)")
+app = FastAPI(title="Golden Corridor Optimization Engine (Phase 1)")
 
 # Initialize data files on start
 init_files()
@@ -22,4 +22,4 @@ app.include_router(corridor.router, prefix="/corridor", tags=["Corridor"])
 
 @app.get("/")
 async def root():
-    return {"message": "GCO Engine API Phase 0 is running."}
+    return {"message": "GCO Engine API Phase 1 is running."}
