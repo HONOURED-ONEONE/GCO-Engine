@@ -1,23 +1,51 @@
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
+import hashlib
+import json
 from app.api.utils.io import read_json, write_json, REGISTRY_FILE
 
-def add_audit_entry(event_type: str, data: Dict[str, Any]):
+def calculate_hash(prev_hash: str, entry_data: Dict[str, Any]) -> str:
+    content = f"{prev_hash}|{json.dumps(entry_data, sort_keys=True)}"
+    return hashlib.sha256(content.encode()).hexdigest()
+
+def add_audit_entry(event_type: str, data: Dict[str, Any], user_id: str = "system"):
     registry = read_json(REGISTRY_FILE)
     if "audit" not in registry:
         registry["audit"] = []
     
-    # Check if audit is a dict (old format) or list
     if isinstance(registry["audit"], dict):
         registry["audit"] = []
         
-    entry = {
+    prev_hash = registry["audit"][-1].get("hash", "0"*64) if registry["audit"] else "0"*64
+    
+    entry_core = {
         "at": datetime.utcnow().isoformat() + "Z",
         "type": event_type,
-        "data": data
+        "data": data,
+        "user_id": user_id
     }
-    registry["audit"].append(entry)
+    
+    entry_hash = calculate_hash(prev_hash, entry_core)
+    entry_core["hash"] = entry_hash
+    
+    registry["audit"].append(entry_core)
     write_json(REGISTRY_FILE, registry)
+
+def verify_audit_chain() -> bool:
+    registry = read_json(REGISTRY_FILE)
+    audit = registry.get("audit", [])
+    if not audit:
+        return True
+    
+    prev_hash = "0"*64
+    for entry in audit:
+        entry_copy = entry.copy()
+        actual_hash = entry_copy.pop("hash")
+        expected_hash = calculate_hash(prev_hash, entry_copy)
+        if actual_hash != expected_hash:
+            return False
+        prev_hash = actual_hash
+    return True
 
 def get_audit_entries(limit: int = 100):
     registry = read_json(REGISTRY_FILE)

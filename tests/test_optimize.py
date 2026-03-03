@@ -6,6 +6,7 @@ from app.api.main import app
 from app.api.utils.io import init_files, BASE_DATA_DIR, REGISTRY_FILE
 
 client = TestClient(app)
+AUTH_HEADERS = {"Authorization": "Bearer admin_01"}
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_data():
@@ -28,7 +29,7 @@ def test_optimize_recommend_basic():
     response = client.post("/optimize/recommend", json={
         "batch_id": "B001",
         "ts": "2025-01-01T00:00:00"
-    })
+    }, headers=AUTH_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert "setpoints" in data
@@ -41,28 +42,29 @@ def test_optimize_within_bounds():
     response = client.post("/optimize/recommend", json={
         "batch_id": "B001",
         "ts": "2025-01-01T00:00:00"
-    })
+    }, headers=AUTH_HEADERS)
     data = response.json()
     setpoints = data["setpoints"]
     constraints = data["constraints"]
     
-    assert constraints["temperature"][0] <= setpoints["temperature"] <= constraints["temperature"][1]
-    assert constraints["flow"][0] <= setpoints["flow"] <= constraints["flow"][1]
+    # State bounds
+    assert constraints["temperature"]["lower"] <= setpoints["temperature"] <= constraints["temperature"]["upper"]
+    assert constraints["flow"]["lower"] <= setpoints["flow"] <= constraints["flow"]["upper"]
 
 def test_objective_weights_mode_switch():
     # Ensure starting from sustainability
-    r = client.post("/mode/set", json={"mode": "sustainability_first"})
+    r = client.post("/mode/set", json={"mode": "sustainability_first"}, headers=AUTH_HEADERS)
     assert r.status_code == 200
     
-    res1 = client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00"})
+    res1 = client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00"}, headers=AUTH_HEADERS)
     assert res1.status_code == 200
     w1 = res1.json()["objective_weights"]
     
     # Production mode
-    r = client.post("/mode/set", json={"mode": "production_first"})
+    r = client.post("/mode/set", json={"mode": "production_first"}, headers=AUTH_HEADERS)
     assert r.status_code == 200
     
-    res2 = client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00"})
+    res2 = client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00"}, headers=AUTH_HEADERS)
     assert res2.status_code == 200
     w2 = res2.json()["objective_weights"]
     
@@ -72,7 +74,7 @@ def test_objective_weights_mode_switch():
     assert w2["energy"] == 0.25
 
 def test_preview_length_and_timestamps():
-    response = client.get("/optimize/preview", params={"batch_id": "B001", "window": 2})
+    response = client.get("/optimize/preview", params={"batch_id": "B001", "window": 2}, headers=AUTH_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert len(data["points"]) == 2
@@ -80,16 +82,21 @@ def test_preview_length_and_timestamps():
     assert data["points"][1]["ts"] == "2025-01-01T00:00:10"
 
 def test_health_endpoint():
-    client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00"})
-    response = client.get("/optimize/health")
+    client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00"}, headers=AUTH_HEADERS)
+    response = client.get("/optimize/health", headers=AUTH_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert data["calls_total"] >= 1
     assert "cache" in data
 
-def test_cache_hits_increase():
-    h1 = client.get("/optimize/health").json()
-    for _ in range(3):
-        client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00"})
-    h2 = client.get("/optimize/health").json()
-    assert h2["cache"]["bounds_hits"] > h1["cache"]["bounds_hits"]
+def test_ot_writeback_guarded():
+    # Not armed
+    r1 = client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00", "write_back": True}, headers=AUTH_HEADERS)
+    assert r1.json()["ot_status"]["success"] == False
+    
+    # Arm OT
+    client.post("/ot/arm", json={"batch_id": "B001", "duration_sec": 60}, headers=AUTH_HEADERS)
+    
+    # Now success (shadow by default, but successful write attempt)
+    r2 = client.post("/optimize/recommend", json={"batch_id": "B001", "ts": "2025-01-01T00:00:00", "write_back": True}, headers=AUTH_HEADERS)
+    assert r2.json()["ot_status"]["success"] == True

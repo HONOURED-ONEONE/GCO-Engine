@@ -27,7 +27,7 @@ def get_version_history():
     registry = read_json(REGISTRY_FILE)
     return registry.get("history", [])
 
-def propose_corridor_change(delta: Dict[str, float], evidence: Dict[str, Any]):
+def propose_corridor_change(delta: Dict[str, float], evidence: Dict[str, Any], user_id: str = "system"):
     registry = read_json(REGISTRY_FILE)
     if "proposals" not in registry:
         registry["proposals"] = []
@@ -38,15 +38,16 @@ def propose_corridor_change(delta: Dict[str, float], evidence: Dict[str, Any]):
         "delta": delta,
         "evidence": evidence,
         "status": "pending",
-        "created_at": datetime.utcnow().isoformat() + "Z"
+        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_by": user_id
     }
     registry["proposals"].append(proposal)
     write_json(REGISTRY_FILE, registry)
     
-    add_audit_entry("proposal_created", {"proposal_id": prop_id, "summary": evidence.get("summary")})
+    add_audit_entry("proposal_created", {"proposal_id": prop_id, "summary": evidence.get("summary")}, user_id)
     return prop_id
 
-def approve_proposal(prop_id: str, decision: str, notes: Optional[str] = None):
+def approve_proposal(prop_id: str, decision: str, notes: Optional[str] = None, user_id: str = "system"):
     registry = read_json(REGISTRY_FILE)
     corridor_data = read_json(CORRIDOR_FILE)
     
@@ -59,12 +60,12 @@ def approve_proposal(prop_id: str, decision: str, notes: Optional[str] = None):
     decided_at = datetime.utcnow().isoformat() + "Z"
     proposal["decided_at"] = decided_at
     proposal["notes"] = notes
-    proposal["decided_by"] = "human_operator" # Mock human in loop
+    proposal["decided_by"] = user_id
     
     if decision == "reject":
         proposal["status"] = "rejected"
         write_json(REGISTRY_FILE, registry)
-        add_audit_entry("proposal_rejected", {"proposal_id": prop_id, "notes": notes})
+        add_audit_entry("proposal_rejected", {"proposal_id": prop_id, "notes": notes}, user_id)
         return "rejected", None
     
     # Approve
@@ -100,7 +101,7 @@ def approve_proposal(prop_id: str, decision: str, notes: Optional[str] = None):
     corridor_data["versions"][new_v] = {
         "bounds": new_bounds,
         "created_at": decided_at,
-        "evidence": proposal["evidence"]["summary"]
+        "evidence": proposal["evidence"].get("summary", "Manual proposal")
     }
     corridor_data["active_version"] = new_v
     write_json(CORRIDOR_FILE, corridor_data)
@@ -108,6 +109,7 @@ def approve_proposal(prop_id: str, decision: str, notes: Optional[str] = None):
     # Update registry
     proposal["status"] = "approved"
     registry["active_version"] = new_v
+    if "history" not in registry: registry["history"] = []
     registry["history"].append({
         "version": new_v,
         "at": decided_at,
@@ -118,7 +120,7 @@ def approve_proposal(prop_id: str, decision: str, notes: Optional[str] = None):
     # Invalidate Cache
     corridor_cache.delete("active")
     
-    add_audit_entry("version_commit", {"version": new_v, "proposal_id": prop_id})
+    add_audit_entry("version_commit", {"version": new_v, "proposal_id": prop_id}, user_id)
     
     return "approved", new_v
 

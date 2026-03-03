@@ -40,8 +40,6 @@ def get_current_mode_data() -> Dict[str, Any]:
         registry["last_mode"] = "sustainability_first"
         registry["last_mode_weights"] = ALLOWED_MODES["sustainability_first"]["weights"]
         registry["last_mode_changed_at"] = datetime.now(timezone.utc).isoformat()
-        if "audit" not in registry:
-            registry["audit"] = {"mode_changes": []}
         write_json(REGISTRY_FILE, registry)
         
     res = {
@@ -52,6 +50,8 @@ def get_current_mode_data() -> Dict[str, Any]:
     }
     mode_cache.set("current", res)
     return res
+
+from app.api.utils.audit import add_audit_entry
 
 def set_mode(mode_id: str, operator_id: str = "stubbed-operator") -> Tuple[Dict[str, Any], bool]:
     if mode_id not in ALLOWED_MODES:
@@ -68,25 +68,20 @@ def set_mode(mode_id: str, operator_id: str = "stubbed-operator") -> Tuple[Dict[
     if current_mode != mode_id:
         logger.info(f"Mode changing from {current_mode} to {mode_id}")
         
-        # Build audit entry
-        audit_entry = {
-            "at": now,
-            "operator": operator_id,
-            "from": current_mode,
-            "to": mode_id,
-            "weights": weights
-        }
-        
         registry["last_mode"] = mode_id
         registry["last_mode_weights"] = weights
         registry["last_mode_changed_at"] = now
         registry["last_operator_id"] = operator_id
         
-        if "audit" not in registry:
-            registry["audit"] = {"mode_changes": []}
-        registry["audit"]["mode_changes"].append(audit_entry)
-        
         write_json(REGISTRY_FILE, registry)
+        
+        # Use Phase 4 Audit
+        add_audit_entry("mode_change", {
+            "from": current_mode,
+            "to": mode_id,
+            "weights": weights
+        }, operator_id)
+        
         changed = True
         message = "Applied"
         # Invalidate cache

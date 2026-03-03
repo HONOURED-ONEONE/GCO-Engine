@@ -1,0 +1,45 @@
+{
+  "active_policy_id": "p-004",
+  "policies": [
+    {
+      "id": "p-001",
+      "hash": "abc12345",
+      "created_at": 1772550793.026137,
+      "metrics": {
+        "energy_improvement_pct": 0,
+        "quality_deviation_pct": 0
+      },
+      "description": "Baseline Heuristic Policy"
+    },
+    {
+      "id": "p-002",
+      "hash": "bbfc998e",
+      "created_at": 1772550858.66513,
+      "metrics": {
+        "energy_improvement_pct": 3.2,
+        "quality_deviation_pct": 0.1
+      },
+      "description": "Offline trained from 5 trajectories"
+    },
+    {
+      "id": "p-003",
+      "hash": "418927b8",
+      "created_at": 1772550916.335258,
+      "metrics": {
+        "energy_improvement_pct": 3.2,
+        "quality_deviation_pct": 0.1
+      },
+      "description": "Offline trained from 10 trajectories"
+    },
+    {
+      "id": "p-004",
+      "hash": "9f341331",
+      "created_at": 1772550930.891789,
+      "metrics": {
+        "energy_improvement_pct": 3.2,
+        "quality_deviation_pct": 0.1
+      },
+      "description": "Offline trained from 15 trajectories"
+    }
+  ]
+}

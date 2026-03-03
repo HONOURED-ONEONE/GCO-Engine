@@ -49,7 +49,7 @@ def ingest_kpi_service(batch_id: str, energy_kwh: float, yield_pct: float, quali
     
     write_json(KPI_STORE_FILE, store)
     
-    add_audit_entry(event_type, {"batch_id": batch_id, "anomaly_flag": anomaly_flag})
+    add_audit_entry(event_type, {"batch_id": batch_id, "anomaly_flag": anomaly_flag}, "system")
     
     # Trigger MARL
     proposal_id = maybe_propose_update()

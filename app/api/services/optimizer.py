@@ -2,51 +2,163 @@ import pandas as pd
 import os
 import time
 import numpy as np
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Optional
+import casadi as ca
 from app.api.services.mode import get_current_mode_data
 from app.api.services.corridor import get_active_corridor, corridor_cache
-from app.api.utils.io import BASE_DATA_DIR
+from app.api.utils.io import BASE_DATA_DIR, read_json, write_json
 from app.api.utils.metrics import metrics
 
-# Objective Function Constants
-A1, A2 = 0.02, 0.001
-T_Q_MIN, F_Q_MIN = 45.0, 5.0
-B1, B2 = 0.05, 0.01
-T_SWEET = 55.0
+# NMPC Parameters
+Hp = 10  # Prediction horizon
+Hu = 3   # Control horizon
+Ts = 10  # Sampling time (seconds)
 
-# Normalization constants (approximate)
-E_MIN, E_MAX = 0.8, 1.7
-Y_MIN, Y_MAX = 0.0, 0.8
+# Process Model Constants
+TAU_T = 60.0  # Temperature time constant (s)
+TAU_F = 15.0  # Flow time constant (s)
+K_T = 0.5     # Temp gain
+K_F = 1.0     # Flow gain
 
-def calculate_objective(T: float, F: float, weights: Dict[str, float]) -> Tuple[float, Dict[str, float]]:
-    # E_hat: Energy proxy (lower is better)
-    e_raw = A1 * T + A2 * (F ** 2)
-    e_hat = (e_raw - E_MIN) / (E_MAX - E_MIN)
-    e_hat = max(0, min(1, e_hat))
+class NMPCController:
+    def __init__(self):
+        self.nx = 2  # States: [T, F]
+        self.nu = 2  # Inputs: [T_sp, F_sp]
+        self.solver = None
+        self._last_u = np.array([55.0, 10.0])
+        self._setup_solver()
 
-    # Q_risk: Quality risk (lower is better)
-    q_risk = 0.0
-    if T < T_Q_MIN: q_risk += 0.5 * (T_Q_MIN - T)
-    if F < F_Q_MIN: q_risk += 0.5 * (F_Q_MIN - F)
-    q_risk = min(1.0, q_risk)
+    def _setup_solver(self):
+        # States
+        x = ca.SX.sym('x', self.nx)
+        # Inputs
+        u = ca.SX.sym('u', self.nu)
+        
+        # Continuous time dynamics: dx/dt = f(x, u)
+        # dT/dt = (K_T * T_sp - T) / TAU_T
+        # dF/dt = (K_F * F_sp - F) / TAU_F
+        x_dot = ca.vertcat(
+            (K_T * u[0] * 2.0 - x[0]) / TAU_T, # Simple model: setpoint maps to 2x gain for T
+            (K_F * u[1] - x[1]) / TAU_F
+        )
+        
+        # Discretization (RK4)
+        f = ca.Function('f', [x, u], [x_dot])
+        X0 = ca.SX.sym('X0', self.nx)
+        U = ca.SX.sym('U', self.nu)
+        
+        dt = Ts
+        k1 = f(X0, U)
+        k2 = f(X0 + dt/2 * k1, U)
+        k3 = f(X0 + dt/2 * k2, U)
+        k4 = f(X0 + dt * k3, U)
+        X_next = X0 + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
+        F_disc = ca.Function('F_disc', [X0, U], [X_next])
 
-    # Y_hat: Yield proxy (higher is better, so we use 1 - Y_hat)
-    y_raw = B1 * F - B2 * abs(T - T_SWEET)
-    y_hat = (y_raw - Y_MIN) / (Y_MAX - Y_MIN)
-    y_hat = max(0, min(1, y_hat))
+        # Optimization variables
+        OPT_X = ca.SX.sym('OPT_X', self.nx, Hp + 1)
+        OPT_U = ca.SX.sym('OPT_U', self.nu, Hp)
+        P = ca.SX.sym('P', self.nx + 3) # Initial state + weights [energy, quality, yield]
+
+        obj = 0
+        g = []
+        
+        # Initial condition constraint
+        g.append(OPT_X[:, 0] - P[:self.nx])
+        
+        # Weights
+        w_energy = P[self.nx]
+        w_quality = P[self.nx+1]
+        w_yield = P[self.nx+2]
+
+        for k in range(Hp):
+            # Dynamic constraints
+            g.append(OPT_X[:, k+1] - F_disc(OPT_X[:, k], OPT_U[:, k]))
+            
+            # Objective: minimize energy, minimize quality risk, maximize yield
+            T, F = OPT_X[0, k], OPT_X[1, k]
+            
+            # Energy proxy
+            e_hat = (0.02 * T + 0.001 * (F**2) - 0.8) / 0.9
+            
+            # Quality risk (soft constraint penalty)
+            # Penalize if T < 45 or F < 5
+            q_risk = ca.fmax(0, 45 - T) + ca.fmax(0, 5 - F)
+            
+            # Yield proxy
+            y_hat = (0.05 * F - 0.01 * ca.fabs(T - 55.0)) / 0.8
+            
+            obj += w_energy * e_hat + w_quality * q_risk + w_yield * (1 - y_hat)
+            
+            # Rate of change penalty
+            if k > 0:
+                obj += 0.1 * ca.sumsqr(OPT_U[:, k] - OPT_U[:, k-1])
+            else:
+                # Penalty from last known input
+                pass # Handled by initial P if needed
+
+        # Flatten variables
+        vars = ca.vertcat(ca.reshape(OPT_X, -1, 1), ca.reshape(OPT_U, -1, 1))
+        
+        opts = {
+            'ipopt.print_level': 0,
+            'print_time': 0,
+            'ipopt.max_iter': 50,
+            'ipopt.tol': 1e-3
+        }
+        
+        nlp = {'x': vars, 'f': obj, 'g': ca.vertcat(*g), 'p': P}
+        self.solver = ca.nlpsol('solver', 'ipopt', nlp, opts)
+        self.vars_size = vars.size1()
+        self.g_size = ca.vertcat(*g).size1()
+
+    def solve(self, x0: np.ndarray, weights: Dict[str, float], bounds: Dict[str, Any]) -> Tuple[Optional[np.ndarray], str]:
+        p = np.array([x0[0], x0[1], weights.get('energy', 0), weights.get('quality', 0), weights.get('yield', 0)])
+        
+        # Bounds
+        lbg = np.zeros(self.g_size)
+        ubg = np.zeros(self.g_size)
+        
+        lbx = -np.inf * np.ones(self.vars_size)
+        ubx = np.inf * np.ones(self.vars_size)
+        
+        # State bounds (OPT_X)
+        for k in range(Hp + 1):
+            lbx[k*2] = bounds['temperature']['lower']
+            ubx[k*2] = bounds['temperature']['upper']
+            lbx[k*2+1] = bounds['flow']['lower']
+            ubx[k*2+1] = bounds['flow']['upper']
+            
+        # Input bounds (OPT_U)
+        u_start = (Hp + 1) * 2
+        for k in range(Hp):
+            lbx[u_start + k*2] = bounds['temperature']['lower']
+            ubx[u_start + k*2] = bounds['temperature']['upper']
+            lbx[u_start + k*2+1] = bounds['flow']['lower']
+            ubx[u_start + k*2+1] = bounds['flow']['upper']
+
+        try:
+            sol = self.solver(lbx=lbx, ubx=ubx, lbg=lbg, ubg=ubg, p=p)
+            u_opt = sol['x'][(Hp+1)*2:(Hp+1)*2+2].full().flatten()
+            status = self.solver.stats()['return_status']
+            return u_opt, status
+        except Exception as e:
+            return None, str(e)
+
+_nmpc = NMPCController()
+
+def heuristic_nudge(curr_t: float, curr_f: float, weights: Dict[str, float], bounds: Dict[str, Any]) -> Dict[str, float]:
+    """Deterministic fallback: slight nudge towards 'sweet spot' within bounds."""
+    t_target = 55.0
+    f_target = 10.0
     
-    j_energy = weights.get("energy", 0) * e_hat
-    j_quality = weights.get("quality", 0) * q_risk
-    j_yield = weights.get("yield", 0) * (1 - y_hat)
+    t_step = 0.5 if curr_t < t_target else -0.5
+    f_step = 0.1 if curr_f < f_target else -0.1
     
-    total_j = j_energy + j_quality + j_yield
+    new_t = max(bounds["temperature"]["lower"], min(bounds["temperature"]["upper"], curr_t + t_step))
+    new_f = max(bounds["flow"]["lower"], min(bounds["flow"]["upper"], curr_f + f_step))
     
-    return total_j, {
-        "energy": float(j_energy),
-        "quality": float(j_quality),
-        "yield": float(j_yield),
-        "total": float(total_j)
-    }
+    return {"temperature": round(new_t, 2), "flow": round(new_f, 2)}
 
 def recommend_setpoints(batch_id: str, ts: str, hints: Dict[str, Any] = None):
     start_time = time.time()
@@ -55,16 +167,17 @@ def recommend_setpoints(batch_id: str, ts: str, hints: Dict[str, Any] = None):
         return None, "Batch not found"
 
     df = pd.read_csv(csv_path)
+    # Observer/MHE: Use last 5 points if available for estimation
+    # For MVP Phase 4, we'll just use the current point as estimated state
     row = df[df['ts'] == ts]
     if row.empty:
-        # Try to find closest TS if exact match fails
         try:
             df['ts_dt'] = pd.to_datetime(df['ts'])
             target_dt = pd.to_datetime(ts)
             idx = (df['ts_dt'] - target_dt).abs().idxmin()
             row = df.iloc[[idx]]
         except:
-            return None, "Timestamp not found and failed to find closest"
+            return None, "Timestamp not found"
 
     row_data = row.iloc[0]
     curr_t = float(row_data["temperature"])
@@ -76,126 +189,62 @@ def recommend_setpoints(batch_id: str, ts: str, hints: Dict[str, Any] = None):
     _, corridor = get_active_corridor()
     bounds = corridor["bounds"]
     
-    t_bounds = [bounds["temperature"]["lower"], bounds["temperature"]["upper"]]
-    f_bounds = [bounds["flow"]["lower"], bounds["flow"]["upper"]]
+    # NMPC Solve
+    x0 = np.array([curr_t, curr_f])
+    u_opt, status = _nmpc.solve(x0, weights, bounds)
     
-    # Optimizer Params
-    max_iters = hints.get("max_iters", 8) if hints else 8
-    delta_t = hints.get("delta_temp", 1.0) if hints else 1.0
-    delta_f = hints.get("delta_flow", 0.25) if hints else 0.25
-    
-    # Nudge limits (per step)
-    MAX_STEP_T = 2.0
-    MAX_STEP_F = 0.5
-    
-    best_t, best_f = curr_t, curr_f
-    best_j, best_breakdown = calculate_objective(best_t, best_f, weights)
-    
-    # Coordinate Descent
-    for _ in range(max_iters):
-        improved = False
-        # Try T directions
-        for nt in [best_t + delta_t, best_t - delta_t]:
-            # Clamp to bounds AND nudge limits from ORIGINAL state
-            nt = max(t_bounds[0], min(t_bounds[1], nt))
-            if abs(nt - curr_t) > MAX_STEP_T:
-                nt = curr_t + np.sign(nt - curr_t) * MAX_STEP_T
-            
-            nj, n_breakdown = calculate_objective(nt, best_f, weights)
-            if nj < best_j:
-                best_j, best_t, best_breakdown = nj, nt, n_breakdown
-                improved = True
-                
-        # Try F directions
-        for nf in [best_f + delta_f, best_f - delta_f]:
-            nf = max(f_bounds[0], min(f_bounds[1], nf))
-            if abs(nf - curr_f) > MAX_STEP_F:
-                nf = curr_f + np.sign(nf - curr_f) * MAX_STEP_F
-                
-            nj, n_breakdown = calculate_objective(best_t, nf, weights)
-            if nj < best_j:
-                best_j, best_f, best_breakdown = nj, nf, n_breakdown
-                improved = True
-        
-        if not improved:
-            break
+    fallback_active = False
+    if u_opt is None or status != 'Solve_Succeeded':
+        u_opt_dict = heuristic_nudge(curr_t, curr_f, weights, bounds)
+        u_opt = np.array([u_opt_dict["temperature"], u_opt_dict["flow"]])
+        fallback_active = True
+        metrics.record_custom("solver_timeouts", 1)
+    else:
+        metrics.record_custom("solver_success", 1)
 
     compute_ms = int((time.time() - start_time) * 1000)
     metrics.record_call(compute_ms)
-    
-    # Rationale
-    dom_obj = max(best_breakdown, key=lambda k: best_breakdown[k] if k != 'total' else -1)
-    rationale = f"Optimization led by {dom_obj} objective. "
-    if best_t > curr_t: rationale += f"Increased temperature to improve {dom_obj}. "
-    elif best_t < curr_t: rationale += f"Decreased temperature to improve {dom_obj}. "
-    
-    if best_f > curr_f: rationale += f"Increased flow to improve {dom_obj}. "
-    elif best_f < curr_f: rationale += f"Decreased flow to improve {dom_obj}. "
-    
-    if best_t == t_bounds[0] or best_t == t_bounds[1]: rationale += "Temperature hit corridor bound. "
-    if best_f == f_bounds[0] or best_f == f_bounds[1]: rationale += "Flow hit corridor bound. "
-    
-    if abs(best_t - curr_t) >= MAX_STEP_T: rationale += "T-nudge limited by safety jump. "
-    if abs(best_f - curr_f) >= MAX_STEP_F: rationale += "F-nudge limited by safety jump. "
 
     return {
-        "setpoints": {"temperature": round(best_t, 2), "flow": round(best_f, 2)},
+        "setpoints": {"temperature": round(float(u_opt[0]), 2), "flow": round(float(u_opt[1]), 2)},
         "within_bounds": True,
         "objective_weights": weights,
-        "objective_breakdown": best_breakdown,
-        "constraints": {"temperature": t_bounds, "flow": f_bounds},
-        "nudge_applied": {"temperature": round(best_t - curr_t, 2), "flow": round(best_f - curr_f, 2)},
+        "constraints": bounds,
         "compute_ms": compute_ms,
-        "rationale": rationale.strip()
+        "fallback_active": fallback_active,
+        "solver_status": status,
+        "rationale": "NMPC optimized trajectory." if not fallback_active else "Heuristic fallback nudge due to solver failure."
     }, None
 
 def get_preview(batch_id: str, window: int, step_sec: int):
+    # Reuse recommend_setpoints for preview
     start_time = time.time()
     csv_path = os.path.join(BASE_DATA_DIR, "batches", f"{batch_id}.csv")
     if not os.path.exists(csv_path):
         return None, "Batch not found"
     
     df = pd.read_csv(csv_path)
-    # Start from some point, let's say middle or beginning
-    # For preview, we'll just take 'window' rows from the start or a sample
-    points = []
-    mode_data = get_current_mode_data()
-    weights = mode_data["weights"]
-    
-    # Limit window to available data
     actual_window = min(window, len(df))
     subset = df.head(actual_window)
     
     _, corridor = get_active_corridor()
     bounds = corridor["bounds"]
-    t_bounds = [bounds["temperature"]["lower"], bounds["temperature"]["upper"]]
-    f_bounds = [bounds["flow"]["lower"], bounds["flow"]["upper"]]
     
+    points = []
     for _, row in subset.iterrows():
         ts = row['ts']
-        curr_t = float(row['temperature'])
-        curr_f = float(row['flow'])
-        
-        # Call recommend logic internally without re-reading files
-        # We'll just do a single-step optimization for each point in preview
         rec, _ = recommend_setpoints(batch_id, ts)
-        
         points.append({
             "ts": ts,
-            "state": {"temperature": curr_t, "flow": curr_f},
+            "state": {"temperature": float(row['temperature']), "flow": float(row['flow'])},
             "setpoints": rec["setpoints"],
-            "objective_total": rec["objective_breakdown"]["total"],
-            "bounds": {
-                "temperature": t_bounds,
-                "flow": f_bounds
-            }
+            "bounds": bounds,
+            "fallback": rec["fallback_active"]
         })
         
-    compute_ms = int((time.time() - start_time) * 1000)
     return {
         "horizon": window,
         "step_sec": step_sec,
         "points": points,
-        "compute_ms": compute_ms,
-        "note": "Deterministic synthetic preview; no PLC write-back."
+        "compute_ms": int((time.time() - start_time) * 1000)
     }, None

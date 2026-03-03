@@ -89,13 +89,27 @@ def init_files():
             "last_mode": "sustainability_first",
             "last_mode_weights": {"energy": 0.6, "quality": 0.25, "yield": 0.15},
             "last_mode_changed_at": "2026-03-01T00:00:00Z",
-            "audit": {
-                "mode_changes": []
-            }
+            "audit": []
         })
         
     if not os.path.exists(KPI_STORE_FILE):
         write_json(KPI_STORE_FILE, {"items": []})
+
+    # Phase 4 initializations
+    from app.api.services.marl import init_marl_files
+    from app.api.services.ot_connector import OT_CONFIG_FILE
+    init_marl_files()
+    if not os.path.exists(OT_CONFIG_FILE):
+        write_json(OT_CONFIG_FILE, {
+            "mode": "shadow",
+            "armed": False,
+            "interlocks": {
+                "corridor_stable_sec": 30,
+                "max_rate_t": 2.0,
+                "max_rate_f": 0.5
+            },
+            "alarms": []
+        })
 
 def next_version(current: str) -> str:
     if not current.startswith("v"):

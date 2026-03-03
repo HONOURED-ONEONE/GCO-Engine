@@ -1,0 +1,184 @@
+{
+  "trajectories": [
+    {
+      "batch_id": "B000",
+      "ts": 1772550858.659948,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-001"
+    },
+    {
+      "batch_id": "B001",
+      "ts": 1772550858.66046,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-001"
+    },
+    {
+      "batch_id": "B002",
+      "ts": 1772550858.660883,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-001"
+    },
+    {
+      "batch_id": "B003",
+      "ts": 1772550858.6613078,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-001"
+    },
+    {
+      "batch_id": "B004",
+      "ts": 1772550858.661727,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-001"
+    },
+    {
+      "batch_id": "B000",
+      "ts": 1772550916.328154,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-002"
+    },
+    {
+      "batch_id": "B001",
+      "ts": 1772550916.328848,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-002"
+    },
+    {
+      "batch_id": "B002",
+      "ts": 1772550916.3293371,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-002"
+    },
+    {
+      "batch_id": "B003",
+      "ts": 1772550916.3298078,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-002"
+    },
+    {
+      "batch_id": "B004",
+      "ts": 1772550916.33027,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-002"
+    },
+    {
+      "batch_id": "B000",
+      "ts": 1772550930.88623,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-003"
+    },
+    {
+      "batch_id": "B001",
+      "ts": 1772550930.886776,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-003"
+    },
+    {
+      "batch_id": "B002",
+      "ts": 1772550930.8873038,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-003"
+    },
+    {
+      "batch_id": "B003",
+      "ts": 1772550930.887789,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-003"
+    },
+    {
+      "batch_id": "B004",
+      "ts": 1772550930.888302,
+      "trajectory": [
+        {
+          "T": 150,
+          "F": 12
+        }
+      ],
+      "reward": 0.9,
+      "policy_id": "p-003"
+    }
+  ]
+}

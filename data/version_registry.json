@@ -1,1 +1,36 @@
-{"active_version": "v1", "history": [{"version": "v1", "at": "2026-03-01T00:00:00Z", "notes": "Initial"}], "proposals": [], "audit": []}
+{
+  "active_version": "v1",
+  "history": [
+    {
+      "version": "v1",
+      "at": "2026-02-20T00:00:00Z",
+      "notes": "Initial"
+    }
+  ],
+  "proposals": [],
+  "last_mode": "production_first",
+  "last_mode_weights": {
+    "energy": 0.25,
+    "quality": 0.35,
+    "yield": 0.4
+  },
+  "last_mode_changed_at": "2026-03-03T15:15:30.924259+00:00",
+  "audit": [
+    {
+      "at": "2026-03-03T15:15:30.924679Z",
+      "type": "mode_change",
+      "data": {
+        "from": "sustainability_first",
+        "to": "production_first",
+        "weights": {
+          "energy": 0.25,
+          "quality": 0.35,
+          "yield": 0.4
+        }
+      },
+      "user_id": "op_01",
+      "hash": "0eb043dbdad3c6932c7b1832e65b093074f613d66640b12f62f257d308c7cdd4"
+    }
+  ],
+  "last_operator_id": "op_01"
+}

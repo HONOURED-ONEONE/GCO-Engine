@@ -1,6 +1,75 @@
 from typing import Optional, List, Dict, Any
-from app.api.utils.io import read_json, write_json, KPI_STORE_FILE
+import os
+import time
+import hashlib
+from app.api.utils.io import read_json, write_json, KPI_STORE_FILE, BASE_DATA_DIR
 from app.api.services.corridor import propose_corridor_change
+
+POLICY_REGISTRY_FILE = os.path.join(BASE_DATA_DIR, "policy_registry.json")
+EXPERIENCE_STORE_FILE = os.path.join(BASE_DATA_DIR, "experience_store.json")
+
+def init_marl_files():
+    if not os.path.exists(POLICY_REGISTRY_FILE):
+        write_json(POLICY_REGISTRY_FILE, {
+            "active_policy_id": "p-001",
+            "policies": [
+                {
+                    "id": "p-001",
+                    "hash": "abc12345",
+                    "created_at": time.time(),
+                    "metrics": {"energy_improvement_pct": 0, "quality_deviation_pct": 0},
+                    "description": "Baseline Heuristic Policy"
+                }
+            ]
+        })
+    if not os.path.exists(EXPERIENCE_STORE_FILE):
+        write_json(EXPERIENCE_STORE_FILE, {"trajectories": []})
+
+def get_active_policy():
+    init_marl_files()
+    registry = read_json(POLICY_REGISTRY_FILE)
+    active_id = registry.get("active_policy_id")
+    for p in registry.get("policies", []):
+        if p["id"] == active_id:
+            return p
+    return registry["policies"][0]
+
+def log_experience(batch_id: str, trajectory: List[Dict[str, Any]], reward: float):
+    init_marl_files()
+    store = read_json(EXPERIENCE_STORE_FILE)
+    store["trajectories"].append({
+        "batch_id": batch_id,
+        "ts": time.time(),
+        "trajectory": trajectory,
+        "reward": reward,
+        "policy_id": get_active_policy()["id"]
+    })
+    # Keep store manageable for MVP
+    if len(store["trajectories"]) > 100:
+        store["trajectories"] = store["trajectories"][-100:]
+    write_json(EXPERIENCE_STORE_FILE, store)
+
+def train_offline_batch():
+    """Simulates offline training from experience store."""
+    store = read_json(EXPERIENCE_STORE_FILE)
+    trajectories = store.get("trajectories", [])
+    if len(trajectories) < 5:
+        return None, "Insufficient data for training"
+    
+    # Simulate policy improvement
+    new_id = f"p-{len(read_json(POLICY_REGISTRY_FILE)['policies']) + 1:03d}"
+    new_policy = {
+        "id": new_id,
+        "hash": hashlib.md5(str(time.time()).encode()).hexdigest()[:8],
+        "created_at": time.time(),
+        "metrics": {"energy_improvement_pct": 3.2, "quality_deviation_pct": 0.1},
+        "description": f"Offline trained from {len(trajectories)} trajectories"
+    }
+    
+    registry = read_json(POLICY_REGISTRY_FILE)
+    registry["policies"].append(new_policy)
+    write_json(POLICY_REGISTRY_FILE, registry)
+    return new_policy, None
 
 def maybe_propose_update(window_size: int = 3):
     store = read_json(KPI_STORE_FILE)
@@ -30,22 +99,22 @@ def maybe_propose_update(window_size: int = 3):
         "yield_mean": round(avg_yield, 2)
     }
 
-    # Rule 1: Energy improvement (Avg energy down >= 3% and no quality issues)
+    # Use Active Policy Info for Rationale
+    policy = get_active_policy()
+
     if energy_delta_pct <= -3.0 and quality_issues == 0:
         delta = {"temperature_upper": -0.5}
-        summary = f"Energy decreased by {abs(energy_delta_pct):.1f}% over last {window_size} batches with stable quality."
+        summary = f"[{policy['id']}] Energy decreased by {abs(energy_delta_pct):.1f}% with stable quality."
         confidence = 0.78
         
-    # Rule 2: Quality issues (>=2 in window) -> Widen
     elif quality_issues >= 2:
         delta = {"temperature_upper": 0.5, "temperature_lower": -0.5}
-        summary = f"Detected {quality_issues} quality deviations in last {window_size} batches. Proposing wider bounds."
+        summary = f"[{policy['id']}] Detected {quality_issues} quality deviations. Proposing wider bounds."
         confidence = 0.85
         
-    # Rule 3: Yield low (< 85%) -> Small bump to flow upper
     elif avg_yield < 85.0:
         delta = {"flow_upper": 0.2}
-        summary = f"Average yield ({avg_yield:.1f}%) below target. Proposing slight flow upper bound increase."
+        summary = f"[{policy['id']}] Yield low. Proposing slight flow upper bound increase."
         confidence = 0.65
 
     if delta:
@@ -53,7 +122,8 @@ def maybe_propose_update(window_size: int = 3):
             "summary": summary,
             "kpi_window": batch_ids,
             "metrics": metrics,
-            "confidence": confidence
+            "confidence": confidence,
+            "policy_id": policy["id"]
         }
         return propose_corridor_change(delta, evidence)
 
