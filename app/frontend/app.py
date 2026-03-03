@@ -72,7 +72,31 @@ if st.sidebar.button("Refresh SLOs"):
         st.sidebar.json(health)
 
 st.title("Golden Corridor Optimization Engine")
-st.caption("Phase 4 – Scale & Harden: NMPC Stack, Guarded OT & Policy Governance")
+st.caption("Phase 5 – Judge Demo: Deterministic Scenarios & Evidence Pack")
+
+# --- DEMO MODE BANNER ---
+demo_mode = st.toggle("🚀 Judge Demo Mode", value=False)
+if demo_mode:
+    st.info("💡 **Demo Mode Active**: Automation enabled. You can trigger deterministic scenarios and auto-generate the evidence pack.")
+    c1, c2, c3, c4 = st.columns(4)
+    if c1.button("🌱 Seed Scenarios"):
+        os.system("python3 demo.py seed --scenario S1")
+        os.system("python3 demo.py seed --scenario S2")
+        os.system("python3 demo.py seed --scenario S3")
+        st.toast("Scenarios S1-S3 Seeded!")
+    if c2.button("🏃 Run S1 (Sustainability)"):
+        with st.spinner("Running S1..."):
+            os.system("python3 demo.py run --scenario S1")
+        st.toast("Scenario S1 Complete!")
+        st.rerun()
+    if c3.button("📊 Capture Charts"):
+        os.system("python3 demo.py capture")
+        st.toast("Charts Captured!")
+    if c4.button("📦 Pack Evidence"):
+        os.system("python3 demo.py pack")
+        st.success("Evidence Pack Ready!")
+        st.balloons()
+    st.divider()
 
 # --- MAIN AREA ---
 tabs = st.tabs(["🎛️ Optimizer Console", "📈 Batch KPIs", "🤝 Proposals", "📑 Policy Registry", "📜 Governance Audit"])

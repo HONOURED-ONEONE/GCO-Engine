@@ -1,0 +1,1 @@
+{"run_id": "test-id", "uptime_sec": 10, "calls_total": 5, "latency_ms_p95": 200, "solver_success_rate": 1.0}

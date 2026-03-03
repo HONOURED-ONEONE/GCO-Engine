@@ -157,7 +157,6 @@ class CorridorVersionResponse(BaseModel):
     active_version: str
     bounds: Dict[str, Dict[str, float]]
     history: List[Dict]
-
 class AuditEntry(BaseModel):
     at: str
     type: str
@@ -165,7 +164,25 @@ class AuditEntry(BaseModel):
     user_id: Optional[str] = "system"
     hash: Optional[str] = None
 
+class EvidenceSnapshotResponse(BaseModel):
+    active_version: str
+    bounds: Dict[str, Any]
+    recent_kpis: List[Any]
+    recent_recommendations: List[Any]
+    proposals: List[Any]
+    audit_tail: List[AuditEntry]
+
+class RunMetricsResponse(BaseModel):
+    run_id: str
+    uptime_sec: int
+    calls_total: int
+    latency_ms_p95: int
+    solver_success_rate: float
+    proposal_count: int
+    approval_count: int
+
 class CorridorAuditResponse(BaseModel):
+...
     items: List[AuditEntry]
 
 class CorridorDiffResponse(BaseModel):

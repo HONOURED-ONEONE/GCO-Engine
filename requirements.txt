@@ -17,3 +17,5 @@ prometheus-client
 python-jose[cryptography]
 passlib[bcrypt]
 asyncua
+fpdf2
+matplotlib

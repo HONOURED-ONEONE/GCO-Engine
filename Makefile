@@ -1,42 +1,44 @@
-.PHONY: install api ui run-api run-frontend test bench-opt reset-mode demo-mode data
+.PHONY: install api ui demo judge-demo evidence-pack clean-demo test
 
 install:
-	pip install -r requirements.txt
+	python3 -m pip install -r requirements.txt
 
-data:
-	python3 scripts/gen_synth_data.py
+api:
+	uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
 
-api: run-api
-ui: run-frontend
+ui:
+	streamlit run app/frontend/app.py --server.port 8501
 
-run-api:
-	python3 -m uvicorn app.api.main:app --reload --port 8000
+demo:
+	python3 demo.py seed --scenario S1
+	python3 demo.py seed --scenario S2
+	python3 demo.py seed --scenario S3
+	@echo "Opening UI at http://localhost:8501"
+	streamlit run app/frontend/app.py --server.port 8501
 
-run-frontend:
-	python3 -m streamlit run app/frontend/app.py
+judge-demo:
+	@echo "🚀 Running Automated Judge Demo (S1 -> S2 -> S3)..."
+	python3 demo.py seed --scenario S1
+	python3 demo.py run --scenario S1
+	python3 demo.py seed --scenario S2
+	python3 demo.py run --scenario S2
+	python3 demo.py seed --scenario S3
+	python3 demo.py run --scenario S3
+	python3 demo.py capture
+	python3 demo.py pack
+	@echo "✅ Demo Complete. Evidence Pack generated in /evidence"
+	@echo "📄 Open evidence/run_report.pdf to review."
 
-demo-proposals:
-	@echo "Seeding KPIs to trigger a proposal..."
-	@curl -X POST http://localhost:8000/kpi/ingest -H "Content-Type: application/json" -d '{"batch_id":"B101", "energy_kwh":100.0, "yield_pct":90.0, "quality_deviation":false}'
-	@curl -X POST http://localhost:8000/kpi/ingest -H "Content-Type: application/json" -d '{"batch_id":"B102", "energy_kwh":95.0, "yield_pct":90.5, "quality_deviation":false}'
-	@curl -X POST http://localhost:8000/kpi/ingest -H "Content-Type: application/json" -d '{"batch_id":"B103", "energy_kwh":90.0, "yield_pct":91.0, "quality_deviation":false}'
-	@echo "Opening Proposals tab (approx)..."
-	@echo "Check: http://localhost:8501"
+evidence-pack:
+	python3 demo.py capture
+	python3 demo.py pack
+
+clean-demo:
+	rm -rf data/batches/*.csv
+	rm -rf evidence/*
+	rm -f scenario_*.json
+	rm -f gco_evidence_*.zip
+	python3 -c "from app.api.utils.io import init_files; init_files()"
 
 test:
-	python3 -m pytest tests/ -v
-
-bench-opt:
-	@echo "Benchmarking Optimizer (200 calls)..."
-	@python3 scripts/bench_opt.py
-
-reset-mode:
-	@echo "Restoring defaults in version_registry.json..."
-	@python3 -c "import json; d=json.load(open('data/version_registry.json')); d['last_mode']='sustainability_first'; d['last_mode_weights']={'energy':0.6,'quality':0.25,'yield':0.15}; d['audit']={'mode_changes':[]}; json.dump(d, open('data/version_registry.json','w'), indent=2)"
-	@echo "Done."
-
-demo-mode:
-	@echo "Starting GCO Engine Phase 2 Demo..."
-	@echo "API: http://localhost:8000"
-	@echo "Frontend: http://localhost:8501"
-	(make run-api & make run-frontend)
+	python3 -m pytest tests/

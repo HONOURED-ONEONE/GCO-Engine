@@ -1,54 +1,53 @@
 # Golden Corridor Optimization Engine (Track B)
 
-## Overview
-GCO Engine is a production-like optimization platform for industrial corridors, focusing on balancing energy, quality, and yield.
+Phase 5: Judge Demo Automation & Evidence Pack
 
-## Phase 1 – Mode Configuration & Hardening (Current)
-Phase 1 evolves the basic mode toggle into a robust module with validation, persistence, and audit logging.
+## 🚀 Judge Quickstart (Deterministic Offline Demo)
 
-### Key Features
-- **Backend (FastAPI)**: Hardened endpoints for setting and getting optimization modes.
-- **Services**: Centralized logic for mode definitions and audit logging.
-- **Persistence**: Safe file-backed JSON storage with locking for concurrent writes.
-- **Frontend (Streamlit)**: Enhanced UI for mode management and policy visualization.
-- **Testing**: Comprehensive unit and integration tests for mode operations.
+1.  **Install Dependencies**:
+    ```bash
+    make install
+    ```
 
-### Allowed Modes
-- `sustainability_first`: Energy=0.60, Quality=0.25, Yield=0.15
-- `production_first`: Energy=0.25, Quality=0.35, Yield=0.40
+2.  **Start API**:
+    ```bash
+    make api
+    ```
+    *(In a separate terminal)*
 
-## Getting Started
+3.  **Start UI**:
+    ```bash
+    make ui
+    ```
+    *(Open http://localhost:8501)*
 
-1. **Install Dependencies**:
-   ```bash
-   make install
-   ```
+4.  **Run Full Automated Demo**:
+    ```bash
+    make judge-demo
+    ```
+    *(This seeds all scenarios, runs the loop, captures charts, and packs evidence)*
 
-2. **Generate Synthetic Data**:
-   ```bash
-   make data
-   ```
+5.  **Review Evidence Pack**:
+    Open `evidence/run_report.pdf` or examine the generated `gco_evidence_*.zip`.
 
-3. **Run the API**:
-   ```bash
-   make run-api
-   ```
+## 📦 Key Capabilities (Phase 5)
 
-4. **Run the Frontend**:
-   ```bash
-   make run-frontend
-   ```
+- **Scenario S1: Sustainability-First**: Energy consumption drops 3%+, triggering a MARL proposal to tighten temperature upper bounds.
+- **Scenario S2: Quality Guardrail**: Sporadic quality deviations trigger a widening of temperature bounds for safety.
+- **Scenario S3: Yield Boost**: Trending yields below 85% trigger an increase in flow upper limits.
+- **Evidence Pack**: Self-contained ZIP with PNG charts, KPI CSVs, Version JSONs, and an auto-generated PDF summary.
+- **Tamper-Evident Audit**: Chained SHA-256 hashes for all system actions (mode changes, approvals, writes).
+- **Safety-First NMPC**: Real-time Nonlinear Model Predictive Control (CasADi) with corridor constraint enforcement.
 
-5. **Run Tests**:
-   ```bash
-   make test
-   ```
+## 🛠️ Tech Stack
+- **Optimizer**: Python, CasADi (IPOPT), NumPy, SciPy
+- **Backend**: FastAPI, Pydantic, OTel
+- **Frontend**: Streamlit, Matplotlib
+- **Reporting**: FPDF2
+- **Data**: JSON-backed deterministic storage with FileLocking
 
-## Development Commands
-- `make reset-mode`: Restore default optimization mode in the registry.
-- `make demo-mode`: Start both API and Frontend for a quick demo.
-
-## Data Structure
-- `data/version_registry.json`: Tracks active mode, weights, and audit history.
-- `data/corridor.json`: Stores corridor bounds and version history.
-- `data/kpi_store.json`: Stores end-of-batch KPI records.
+## ✅ Validation & Testing
+Run all tests including Phase 5:
+```bash
+make test
+```
