@@ -2,11 +2,20 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from app.api.utils.io import read_json, write_json, CORRIDOR_FILE, REGISTRY_FILE
 from app.api.utils.versioning import next_version
+from app.api.utils.cache import TTLCache
+
+corridor_cache = TTLCache(ttl_sec=5)
 
 def get_active_corridor():
+    cached = corridor_cache.get("active")
+    if cached:
+        return cached
+    
     corridor_data = read_json(CORRIDOR_FILE)
     active_v = corridor_data.get("active_version", "v1")
-    return active_v, corridor_data["versions"][active_v]
+    res = active_v, corridor_data["versions"][active_v]
+    corridor_cache.set("active", res)
+    return res
 
 def get_version_history():
     registry = read_json(REGISTRY_FILE)

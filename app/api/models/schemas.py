@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Any
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -32,12 +32,43 @@ class ModePolicyResponse(BaseModel):
 class OptimizeRecommendRequest(BaseModel):
     batch_id: str
     ts: str
+    hints: Optional[Dict[str, Any]] = None
 
 class OptimizeRecommendResponse(BaseModel):
     setpoints: Dict[str, float]
-    rationale: str
     within_bounds: bool
     objective_weights: Dict[str, float]
+    objective_breakdown: Dict[str, float]
+    constraints: Dict[str, List[float]]
+    nudge_applied: Dict[str, float]
+    compute_ms: int
+    rationale: str
+
+class PreviewPoint(BaseModel):
+    ts: str
+    state: Dict[str, float]
+    setpoints: Dict[str, float]
+    objective_total: float
+    bounds: Dict[str, List[float]]
+
+class OptimizePreviewResponse(BaseModel):
+    horizon: int
+    step_sec: int
+    points: List[PreviewPoint]
+    compute_ms: int
+    note: str
+
+class CacheStats(BaseModel):
+    bounds_hits: int
+    bounds_misses: int
+    ttl_sec: int
+
+class OptimizeHealthResponse(BaseModel):
+    uptime_sec: int
+    calls_total: int
+    cache: CacheStats
+    latency_ms_p50: int
+    latency_ms_p95: int
 
 class KPIIngestRequest(BaseModel):
     batch_id: str

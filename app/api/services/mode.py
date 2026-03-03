@@ -3,7 +3,11 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple
 from app.api.utils.io import read_json, write_json, REGISTRY_FILE
 
+from app.api.utils.cache import TTLCache
+
 logger = logging.getLogger(__name__)
+
+mode_cache = TTLCache(ttl_sec=5)
 
 ALLOWED_MODES = {
     "sustainability_first": {
@@ -24,6 +28,10 @@ def get_policy() -> List[Dict[str, Any]]:
     return list(ALLOWED_MODES.values())
 
 def get_current_mode_data() -> Dict[str, Any]:
+    cached = mode_cache.get("current")
+    if cached:
+        return cached
+
     registry = read_json(REGISTRY_FILE)
     
     # Check if keys exist, if not, initialize with defaults
@@ -36,12 +44,14 @@ def get_current_mode_data() -> Dict[str, Any]:
             registry["audit"] = {"mode_changes": []}
         write_json(REGISTRY_FILE, registry)
         
-    return {
+    res = {
         "mode": registry.get("last_mode"),
         "weights": registry.get("last_mode_weights"),
         "changed_at": registry.get("last_mode_changed_at"),
         "operator_id": registry.get("last_operator_id", "stubbed-operator")
     }
+    mode_cache.set("current", res)
+    return res
 
 def set_mode(mode_id: str, operator_id: str = "stubbed-operator") -> Tuple[Dict[str, Any], bool]:
     if mode_id not in ALLOWED_MODES:
@@ -79,6 +89,8 @@ def set_mode(mode_id: str, operator_id: str = "stubbed-operator") -> Tuple[Dict[
         write_json(REGISTRY_FILE, registry)
         changed = True
         message = "Applied"
+        # Invalidate cache
+        mode_cache.cache = {}
     else:
         logger.info(f"Mode already set to {mode_id}. No change.")
         message = "No change"
