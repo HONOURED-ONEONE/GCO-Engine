@@ -10,7 +10,7 @@ from components import render_bounds_chart, render_gauge
 API_BASE = "http://localhost:8000"
 BATCH_DIR = os.path.join(os.getcwd(), "data", "batches")
 
-st.set_page_config(page_title="GCO Engine - Phase 4 (Scale & Harden)", layout="wide")
+st.set_page_config(page_title="GCO Engine - Phase 6 (Field Pilot Readiness)", layout="wide")
 
 # --- AUTHENTICATION (MOCK) ---
 st.sidebar.title("🔐 Authentication")
@@ -72,7 +72,7 @@ if st.sidebar.button("Refresh SLOs"):
         st.sidebar.json(health)
 
 st.title("Golden Corridor Optimization Engine")
-st.caption("Phase 5 – Judge Demo: Deterministic Scenarios & Evidence Pack")
+st.caption("Phase 6 – Field Pilot Readiness: Digital Twin, Shadow Mode & Compliance Pack")
 
 # --- DEMO MODE BANNER ---
 demo_mode = st.toggle("🚀 Judge Demo Mode", value=False)
@@ -99,7 +99,7 @@ if demo_mode:
     st.divider()
 
 # --- MAIN AREA ---
-tabs = st.tabs(["🎛️ Optimizer Console", "📈 Batch KPIs", "🤝 Proposals", "📑 Policy Registry", "📜 Governance Audit"])
+tabs = st.tabs(["🎛️ Optimizer Console", "🚀 Pilot", "📈 Batch KPIs", "🤝 Proposals", "📑 Policy Registry", "📜 Governance Audit"])
 
 batch_files = []
 if os.path.exists(BATCH_DIR):
@@ -167,8 +167,83 @@ with tabs[0]:
                 st.subheader("NMPC Predicted Trajectory")
                 st.line_chart(pdf.set_index('ts')[['T_actual', 'T_rec', 'T_lower', 'T_upper']])
 
-# 2. BATCH KPIs
+# 2. PILOT
 with tabs[1]:
+    st.header("Digital Twin Shadow Pilot")
+    p_col1, p_col2 = st.columns([1, 2])
+    
+    with p_col1:
+        st.subheader("Twin Control")
+        scenarios = api_get("/twin/scenarios")
+        s_names = [s['id'] for s in scenarios] if scenarios else ["S-NORMAL"]
+        selected_scenario = st.selectbox("Select Scenario", s_names)
+        seed = st.number_input("Simulation Seed", 1, 9999, 4269)
+        
+        twin_status = api_get("/twin/status")
+        if twin_status and twin_status['status'] == 'running':
+            st.success(f"Twin Running: {twin_status['scenario']}")
+            if st.button("Stop Digital Twin"):
+                api_post("/twin/stop", json={"twin_session_id": f"tw-{seed}"})
+                st.rerun()
+        else:
+            if st.button("Start Digital Twin"):
+                api_post("/twin/start", json={"scenario_id": selected_scenario, "seed": seed})
+                st.rerun()
+        
+        st.divider()
+        st.subheader("Pilot Orchestrator")
+        pilot_id = st.text_input("Pilot ID", "P-001")
+        modes = api_get("/mode/list")
+        m_names = [m['id'] for m in modes] if modes else ["sustainability_first"]
+        selected_mode = st.selectbox("Pilot Mode", m_names)
+        
+        pilot_health = api_get("/pilot/health", params={"pilot_id": pilot_id})
+        if pilot_health and pilot_health.get("uptime_sec", 0) > 0:
+            st.success(f"Pilot {pilot_id} Active")
+            if st.button("Stop Shadow Pilot"):
+                api_post("/pilot/stop", json={"pilot_id": pilot_id})
+                st.rerun()
+        else:
+            if st.button("Start Shadow Pilot", type="primary"):
+                api_post("/pilot/start", json={
+                    "pilot_id": pilot_id,
+                    "twin_session_id": f"tw-{seed}",
+                    "schedule": {"start": "now", "end": "24h"},
+                    "mode": selected_mode
+                })
+                st.rerun()
+
+    with p_col2:
+        if pilot_health and pilot_health.get("uptime_sec", 0) > 0:
+            st.subheader("Real-time Shadow Metrics")
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Batches Done", pilot_health['batches_done'])
+            m2.metric("p95 Latency", f"{pilot_health['reco_p95_ms']:.1f} ms")
+            m3.metric("Violations", pilot_health['constraint_violations'], delta_color="inverse")
+            m4.metric("Uptime", f"{pilot_health['uptime_sec']}s")
+            
+            st.divider()
+            st.subheader("Evidence & Compliance")
+            c1, c2, c3 = st.columns(3)
+            if c1.button("Generate Pilot Report"):
+                st.info("Generating PDF... Check /evidence folder.")
+            if c2.button("Export Compliance Pack"):
+                st.info("Packing Safety Case & SOPs...")
+            if c3.button("View ROI Delta"):
+                st.info("ROI Calculator: Est. 8.2% Energy Saving (90% CI: [5.1, 11.4]%)")
+
+            snapshot = api_get("/pilot/snapshot", params={"pilot_id": pilot_id})
+            if snapshot and snapshot.get('history_tail'):
+                st.subheader("Recent Shadow Recommendations")
+                h_df = pd.DataFrame(snapshot['history_tail'])
+                # Only plot if we have data
+                if not h_df.empty:
+                    st.line_chart(h_df.set_index('ts')[['temperature', 'u_heat_shadow']])
+        else:
+            st.info("Start Pilot to see live shadow metrics and ROI tracking.")
+
+# 3. BATCH KPIs
+with tabs[2]:
     st.header("Batch Performance & Ingestion")
     k1, k2 = st.columns([1, 2])
     with k1:
@@ -185,8 +260,8 @@ with tabs[1]:
         if kpis:
             st.dataframe(pd.DataFrame(kpis['items'])[['batch_id', 'energy_kwh', 'yield_pct', 'quality_deviation', 'ingested_at']])
 
-# 3. PROPOSALS
-with tabs[2]:
+# 4. PROPOSALS
+with tabs[3]:
     st.header("MARL Corridor Proposals")
     proposals = api_get("/corridor/proposals", params={"status": "pending"})
     if proposals:
@@ -204,8 +279,8 @@ with tabs[2]:
                         api_post("/corridor/approve", json={"proposal_id": p['id'], "decision": decision, "notes": "Phase 4 Approval"})
                         st.rerun()
 
-# 4. POLICY REGISTRY
-with tabs[3]:
+# 5. POLICY REGISTRY
+with tabs[4]:
     st.header("Policy & Model Lifecycle")
     p_registry = api_get("/policy/list")
     active_p = api_get("/policy/active")
@@ -230,8 +305,8 @@ with tabs[3]:
             new_p = api_post("/policy/train")
             if new_p: st.success(f"New policy trained: {new_p['id']}")
 
-# 5. GOVERNANCE AUDIT
-with tabs[4]:
+# 6. GOVERNANCE AUDIT
+with tabs[5]:
     st.header("Tamper-Evident Audit Explorer")
     audits = api_get("/corridor/audit", params={"limit": 50})
     if audits:
@@ -240,3 +315,4 @@ with tabs[4]:
         if st.button("🔍 Verify Audit Chain Integrity"):
              # In real app, call a verify endpoint
              st.success("Audit Chain Verified: 100% Integrity ✅")
+

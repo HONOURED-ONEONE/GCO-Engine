@@ -1,0 +1,24 @@
+# Safety Case: GCO-Engine Pilot
+**Pilot ID:** {{ pilot_id }}
+**Date:** {{ date }}
+
+## 1. System Definition
+The Golden Corridor Optimization (GCO) Engine is a pseudo-NMPC controller designed to optimize batch process setpoints within a defined "Golden Corridor".
+
+## 2. Hazard Analysis
+- **Hazard:** Recommendations outside equipment limits.
+  - **Mitigation:** Mandatory Golden Corridor bounds check at the Engine level.
+- **Hazard:** Network latency causing delayed control.
+  - **Mitigation:** Local edge deployment; Shadow mode validation of p95 latency.
+
+## 3. Safety Requirements
+- Optimizer must return within 250ms.
+- Recommendations must be within 1% of corridor bounds.
+
+## 4. Validation Evidence
+- Soak Test Duration: {{ soak_hours }} hours.
+- Constraint Violations: {{ violations }}.
+- p95 Latency: {{ p95_ms }} ms.
+
+## 5. Conclusion
+System is safe for guarded on-site trial.

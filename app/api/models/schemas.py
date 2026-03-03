@@ -182,7 +182,6 @@ class RunMetricsResponse(BaseModel):
     approval_count: int
 
 class CorridorAuditResponse(BaseModel):
-...
     items: List[AuditEntry]
 
 class CorridorDiffResponse(BaseModel):

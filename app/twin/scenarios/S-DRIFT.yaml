@@ -1,0 +1,21 @@
+id: S-DRIFT
+description: Asset drift (reduced efficiency)
+dt: 1.0
+alpha: 0.08
+beta: 0.06
+gamma: 0.15
+ambient_temp: 28.0
+max_steps: 120
+phases:
+  WARM_UP:
+    duration: 20
+    target_temp: 60.0
+    target_flow: 5.0
+  HOLD:
+    duration: 80
+    target_temp: 60.0
+    target_flow: 5.0
+  RAMP_DOWN:
+    duration: 20
+    target_temp: 25.0
+    target_flow: 0.0

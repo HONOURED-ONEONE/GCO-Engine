@@ -19,3 +19,4 @@ passlib[bcrypt]
 asyncua
 fpdf2
 matplotlib
+PyYAML

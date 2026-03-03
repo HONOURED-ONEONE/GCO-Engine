@@ -1,0 +1,21 @@
+id: S-NORMAL
+description: Standard operating conditions
+dt: 1.0
+alpha: 0.1
+beta: 0.05
+gamma: 0.2
+ambient_temp: 25.0
+max_steps: 120
+phases:
+  WARM_UP:
+    duration: 20
+    target_temp: 60.0
+    target_flow: 5.0
+  HOLD:
+    duration: 80
+    target_temp: 60.0
+    target_flow: 5.0
+  RAMP_DOWN:
+    duration: 20
+    target_temp: 25.0
+    target_flow: 0.0

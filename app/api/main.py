@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import mode, optimize, kpi, corridor, ot, policy, evidence
+from app.api.routers import mode, optimize, kpi, corridor, ot, policy, evidence, twin, pilot
 from app.api.utils.io import init_files
 
-app = FastAPI(title="GCO Engine (Phase 5 - Judge Demo)")
+app = FastAPI(title="GCO Engine (Phase 6 - Field Pilot Readiness)")
 
 # Initialize data files on start
 init_files()
@@ -22,7 +22,9 @@ app.include_router(corridor.router, prefix="/corridor", tags=["Corridor"])
 app.include_router(ot.router, prefix="/ot", tags=["OT"])
 app.include_router(policy.router, prefix="/policy", tags=["Policy"])
 app.include_router(evidence.router, prefix="/evidence", tags=["Evidence"])
+app.include_router(twin.router, prefix="/twin", tags=["Twin"])
+app.include_router(pilot.router, prefix="/pilot", tags=["Pilot"])
 
 @app.get("/")
 async def root():
-    return {"message": "GCO Engine Phase 4 is running."}
+    return {"message": "GCO Engine Phase 6 - Field Pilot Readiness is running."}

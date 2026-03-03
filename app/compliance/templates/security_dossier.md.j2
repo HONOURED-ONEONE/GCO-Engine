@@ -1,0 +1,19 @@
+# Security & Compliance Dossier
+**Pilot ID:** {{ pilot_id }}
+
+## 1. Threat Model & DFD (STRIDE)
+- **Spoofing:** API authentication required for all management endpoints.
+- **Tampering:** Critical parameters (Golden Corridor) are versioned and audited.
+- **Information Disclosure:** Local-only deployment; data retention policy applied.
+
+## 2. RBAC Matrix
+| Role | Mode Change | Bound Change | View Only |
+|------|-------------|--------------|-----------|
+| Admin| Yes         | Yes          | Yes       |
+| Oper | Yes         | No           | Yes       |
+| View | No          | No           | Yes       |
+
+## 3. Data Retention Policy
+- Recommendation logs: 12 months.
+- Audit trails: 24 months.
+- PII: None stored.

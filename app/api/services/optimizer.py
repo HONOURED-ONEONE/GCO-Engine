@@ -160,28 +160,37 @@ def heuristic_nudge(curr_t: float, curr_f: float, weights: Dict[str, float], bou
     
     return {"temperature": round(new_t, 2), "flow": round(new_f, 2)}
 
-def recommend_setpoints(batch_id: str, ts: str, hints: Dict[str, Any] = None):
+def recommend_setpoints(batch_id: str, ts: str = None, hints: Dict[str, Any] = None, live_state: Optional[Dict[str, float]] = None):
     start_time = time.time()
-    csv_path = os.path.join(BASE_DATA_DIR, "batches", f"{batch_id}.csv")
-    if not os.path.exists(csv_path):
-        return None, "Batch not found"
+    
+    if live_state:
+        curr_t = float(live_state["temperature"])
+        curr_f = float(live_state["flow"])
+    else:
+        csv_path = os.path.join(BASE_DATA_DIR, "batches", f"{batch_id}.csv")
+        if not os.path.exists(csv_path):
+            return None, "Batch not found"
 
-    df = pd.read_csv(csv_path)
-    # Observer/MHE: Use last 5 points if available for estimation
-    # For MVP Phase 4, we'll just use the current point as estimated state
-    row = df[df['ts'] == ts]
-    if row.empty:
-        try:
-            df['ts_dt'] = pd.to_datetime(df['ts'])
-            target_dt = pd.to_datetime(ts)
-            idx = (df['ts_dt'] - target_dt).abs().idxmin()
-            row = df.iloc[[idx]]
-        except:
-            return None, "Timestamp not found"
+        df = pd.read_csv(csv_path)
+        # Observer/MHE: Use last 5 points if available for estimation
+        # For MVP Phase 4, we'll just use the current point as estimated state
+        if ts is None:
+             row = df.iloc[[-1]]
+        else:
+             row = df[df['ts'] == ts]
+             
+        if row.empty:
+            try:
+                df['ts_dt'] = pd.to_datetime(df['ts'])
+                target_dt = pd.to_datetime(ts)
+                idx = (df['ts_dt'] - target_dt).abs().idxmin()
+                row = df.iloc[[idx]]
+            except:
+                return None, "Timestamp not found"
 
-    row_data = row.iloc[0]
-    curr_t = float(row_data["temperature"])
-    curr_f = float(row_data["flow"])
+        row_data = row.iloc[0]
+        curr_t = float(row_data["temperature"])
+        curr_f = float(row_data["flow"])
     
     mode_data = get_current_mode_data()
     weights = mode_data["weights"]

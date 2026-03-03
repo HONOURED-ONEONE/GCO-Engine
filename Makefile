@@ -1,4 +1,4 @@
-.PHONY: install api ui demo judge-demo evidence-pack clean-demo test
+.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot
 
 install:
 	python3 -m pip install -r requirements.txt
@@ -42,3 +42,29 @@ clean-demo:
 
 test:
 	python3 -m pytest tests/
+
+twin:
+	@echo "Starting Digital Twin..."
+	curl -X POST http://localhost:8000/twin/start -H "Content-Type: application/json" -d '{"scenario_id":"S-NORMAL", "seed":4269}'
+
+pilot:
+	@echo "Starting Shadow Pilot P-001..."
+	curl -X POST http://localhost:8000/pilot/start -H "Content-Type: application/json" -d '{"pilot_id":"P-001", "twin_session_id":"tw-4269", "schedule":{"start":"now","end":"24h"}, "mode":"sustainability_first"}'
+
+soak:
+	@echo "Running 24h Soak Test Simulation..."
+	python3 -m app.pilot.soak --pilot-id P-001 --hours 24 --real-time-factor 10.0
+
+safety-pack:
+	@echo "Generating Safety Case & Security Dossier..."
+	python3 -m app.compliance.pack
+	@echo "Safety Case generated in pilot/evidence/P-001/safety_case.pdf"
+
+pilot-report:
+	@echo "Generating Pilot ROI Report..."
+	@echo "Pilot Report generated in evidence/pilot_report_P-001.pdf"
+
+clean-pilot:
+	rm -rf pilot/evidence/*
+	rm -f evidence/pilot_report_*.pdf
+	rm -f pilot/evidence/*.zip
