@@ -60,6 +60,15 @@ stage4-up:
 stage4-smoke:
 	bash scripts/stage4_policy_smoke.sh
 
+evidence:
+	uvicorn services.evidence.main:app --host 0.0.0.0 --port 8008 --reload
+
+stage5-up:
+	docker-compose up --build gateway governance optimizer kpi policy api evidence opa llm twin
+
+stage5-smoke:
+	bash scripts/stage5_evidence_smoke.sh
+
 ui:
 	streamlit run app/frontend/app.py --server.port 8501
 

@@ -73,7 +73,67 @@ allow {
 }
 
 allow {
-  path == "/llm/evidence/summary"
+  route_is("/llm/evidence/summary")
+  role == "Admin"
+}
+
+allow {
+  route_is("/evidence/snapshot")
+  role == "Operator"
+}
+
+allow {
+  route_is("/evidence/snapshot")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/evidence/snapshot")
+  role == "Admin"
+}
+
+allow {
+  route_is("/evidence/files")
+  role == "Operator"
+}
+
+allow {
+  route_is("/evidence/files")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/evidence/files")
+  role == "Admin"
+}
+
+allow {
+  route_is("/evidence/capture")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/evidence/capture")
+  role == "Admin"
+}
+
+allow {
+  route_is("/evidence/pack")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/evidence/pack")
+  role == "Admin"
+}
+
+allow {
+  route_is("/evidence/health")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/evidence/health")
   role == "Admin"
 }
 
@@ -88,9 +148,14 @@ allow {
   role == "System"
 }
 
-# Any authenticated role can do GET reads for demo simplicity
+# Any authenticated role can do GET reads for demo simplicity (except restricted ones)
 allow {
   method == "GET"
+  not restricted_route
+}
+
+restricted_route {
+  route_is("/evidence/")
 }
 
 opa_output := {

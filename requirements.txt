@@ -19,5 +19,6 @@ passlib[bcrypt]
 asyncua
 fpdf2
 matplotlib
+reportlab
 PyYAML
 filelock==3.12.3

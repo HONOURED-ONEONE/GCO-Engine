@@ -12,6 +12,7 @@ services:
       LLM_BASE:        http://llm:8004
       KPI_BASE:        http://kpi:8005
       POLICY_BASE:     http://policy:8006
+      EVIDENCE_BASE:   http://evidence:8008
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
@@ -133,6 +134,29 @@ services:
       ALLOW_ORIGINS: "*"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8004/"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
+  evidence:
+    build:
+      context: .
+      dockerfile: services/evidence/Dockerfile
+    command: uvicorn services.evidence.main:app --host 0.0.0.0 --port 8008 --reload
+    environment:
+      GOVERNANCE_BASE: "http://governance:8001"
+      KPI_BASE: "http://kpi:8005"
+      OPTIMIZER_BASE: "http://optimizer:8002"
+      POLICY_BASE: "http://policy:8006"
+      TWIN_BASE: "http://twin:8007"
+      LLM_BASE: "http://llm:8004"
+      ALLOW_ORIGINS: "*"
+    volumes:
+      - .:/app
+    ports:
+      - "8008:8008"
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:8008/"]
       interval: 10s
       timeout: 2s
       retries: 5

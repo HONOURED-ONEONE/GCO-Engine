@@ -6,6 +6,7 @@ MONOLITH_BASE = os.environ.get("MONOLITH_BASE", "http://localhost:8003")
 LLM_BASE = os.environ.get("LLM_BASE", "http://localhost:8004")
 KPI_BASE = os.environ.get("KPI_BASE", "http://localhost:8005")
 POLICY_BASE = os.environ.get("POLICY_BASE", "http://localhost:8006")
+EVIDENCE_BASE = os.environ.get("EVIDENCE_BASE", "http://localhost:8008")
 OPA_BASE = os.environ.get("OPA_BASE", "http://localhost:8181")
 
 GATEWAY_JWKS_URL = os.environ.get("GATEWAY_JWKS_URL")
