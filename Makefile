@@ -1,19 +1,37 @@
-.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot governance up stage0-smoke
+.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot governance up stage0-smoke gateway opa stage1-gateway stage1-smoke optimizer stage1-opt-smoke
 
 install:
 	python3 -m pip install -r requirements.txt
 
 api:
-	uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+	uvicorn app.api.main:app --host 0.0.0.0 --port 8003 --reload
 
 governance:
 	uvicorn services.governance.main:app --host 0.0.0.0 --port 8001 --reload
+
+gateway:
+	uvicorn services.gateway.main:app --host 0.0.0.0 --port 8000 --reload
+
+optimizer:
+	uvicorn services.optimizer.main:app --host 0.0.0.0 --port 8002 --reload
+
+opa:
+	docker run --rm -p 8181:8181 -v ./services/opa/policies:/policies:ro openpolicyagent/opa:latest run --server --addr=0.0.0.0:8181 /policies
 
 up:
 	docker-compose up -d --build
 
 stage0-smoke:
 	./scripts/stage0_smoke.sh
+
+stage1-gateway:
+	docker-compose up --build gateway governance optimizer api opa
+
+stage1-smoke:
+	bash scripts/stage1_gateway_smoke.sh
+
+stage1-opt-smoke:
+	bash scripts/stage1_opt_smoke.sh
 
 ui:
 	streamlit run app/frontend/app.py --server.port 8501
@@ -50,7 +68,7 @@ clean-demo:
 	python3 -c "from app.api.utils.io import init_files; init_files()"
 
 test:
-	python3 -m pytest tests/
+	python3 -m pytest tests/ services/gateway/tests/
 
 twin:
 	@echo "Starting Digital Twin..."

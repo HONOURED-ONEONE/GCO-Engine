@@ -1,27 +1,63 @@
 services:
-  api:
+  gateway:
     build: .
+    command: uvicorn services.gateway.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
-    volumes:
-      - ./data:/app/data
-    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      GOVERNANCE_BASE: http://governance:8001
+      OPTIMIZER_BASE:  http://optimizer:8002
+      MONOLITH_BASE:   http://api:8003
+      OPA_BASE:        http://opa:8181
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      - opa
+      - api
+      - governance
+      - optimizer
 
-  frontend:
+  opa:
+    image: openpolicyagent/opa:latest
+    command: ["run", "--server", "--addr=0.0.0.0:8181", "/policies"]
+    volumes:
+      - ./services/opa/policies:/policies:ro
+    ports:
+      - "8181:8181"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
     build: .
     ports:
-      - "8501:8501"
-    environment:
-      - API_BASE=http://api:8000
-    command: streamlit run app/frontend/app.py --server.port 8501 --server.address 0.0.0.0
-    depends_on:
-      api:
-        condition: service_healthy
+      - "8003:8003"
+    volumes:
+      - ./data:/app/data
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8003 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  optimizer:
+    build: .
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./data:/app/data
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8002 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   governance:
     build: .
@@ -35,6 +71,17 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  frontend:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE=http://gateway:8000
+    command: streamlit run app/frontend/app.py --server.port 8501 --server.address 0.0.0.0
+    depends_on:
+      gateway:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:latest

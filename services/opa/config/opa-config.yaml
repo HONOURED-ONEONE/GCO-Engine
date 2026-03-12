@@ -1,0 +1,3 @@
+services:
+  - name: my_bundle
+    url: http://localhost:8181

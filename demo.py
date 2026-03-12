@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from fpdf import FPDF
 
-API_BASE = "http://localhost:8000"
+API_BASE = os.environ.get("API_BASE", "http://localhost:8000")
 ADMIN_TOKEN = "admin_01"
 HEADERS = {"Authorization": f"Bearer {ADMIN_TOKEN}"}
 DATA_DIR = "data/batches"

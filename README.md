@@ -47,6 +47,21 @@ We are actively refactoring towards a microservices architecture. Stage 0 establ
 
 The new `governance-service` exclusively owns bounds, policies, and the tamper-evident audit chain. To maintain backwards compatibility and preserve the deterministic demo, the monolith currently proxies or mirrors these endpoints until full decoupling is completed.
 
+## 🛡️ Stage 1: PEP Gateway & Optimizer Service
+### PEP Gateway
+A dedicated API Gateway that serves as a Zero-Trust Policy Enforcement Point (PEP), backed by Open Policy Agent (OPA).
+- **Single public entrypoint**: Gateway on `:8000`.
+- **Zero-Trust Edge**: Enforces AuthN (JWT) and AuthZ (via external OPA PDP).
+
+### Optimizer Service
+Extracted CasADi/IPOPT NMPC solver into a dedicated microservice.
+- **Port**: `:8002`
+- **Dynamic Context**: Fetches bounds and weights from the Governance plane seamlessly.
+
+- **Run Full Stack**: `make stage1-gateway`
+- **Smoke Tests**: `make stage1-smoke` and `make stage1-opt-smoke`
+- **Demo Note**: The `demo.py` and Streamlit UI now point to the Gateway (`API_BASE` -> Gateway) while keeping all endpoint paths intact.
+
 ## 🛠️ Tech Stack
 - **Optimizer**: Python, CasADi (IPOPT), NumPy, SciPy
 - **Backend**: FastAPI, Pydantic, OTel
