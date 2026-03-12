@@ -18,6 +18,9 @@ optimizer:
 llm:
 	uvicorn services.llm.main:app --host 0.0.0.0 --port 8004 --reload
 
+kpi:
+	uvicorn services.kpi.main:app --host 0.0.0.0 --port 8005 --reload
+
 opa:
 	docker run --rm -p 8181:8181 -v ./services/opa/policies:/policies:ro openpolicyagent/opa:latest run --server --addr=0.0.0.0:8181 /policies
 
@@ -41,6 +44,12 @@ stage2-up:
 
 stage2-smoke:
 	bash scripts/stage2_llm_smoke.sh
+
+stage3-up:
+	docker-compose up --build gateway governance optimizer api kpi opa llm
+
+stage3-smoke:
+	bash scripts/stage3_kpi_smoke.sh
 
 ui:
 	streamlit run app/frontend/app.py --server.port 8501
