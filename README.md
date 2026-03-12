@@ -2,65 +2,47 @@
 
 Phase 5: Judge Demo Automation & Evidence Pack
 
-## 🚀 Judge Quickstart (Deterministic Offline Demo)
+## 🚀 Final Cut-Over: Pure Microservices Stack (Phase 7+)
+
+The Golden Corridor Optimization (GCO) Engine has completed its transition to a pure microservices runtime. The legacy monolith is retired from the production stack.
+
+### Quickstart (Pure Service Stack)
 
 1.  **Install Dependencies**:
     ```bash
     make install
     ```
 
-2.  **Start API**:
+2.  **Start Pure Stack**:
     ```bash
-    make api
+    make cutover-up
     ```
-    *(In a separate terminal)*
+    *(Starts Gateway, Governance, Optimizer, KPI, Policy, Twin, Evidence, OT, LLM, and OPA)*
 
-3.  **Start UI**:
+3.  **Verify Migration**:
+    ```bash
+    make cutover-smoke
+    ```
+
+4.  **Start UI**:
     ```bash
     make ui
     ```
     *(Open http://localhost:8501)*
 
-4.  **Run Full Automated Demo**:
+5.  **Run Full Automated Demo**:
     ```bash
     make judge-demo
     ```
-    *(This seeds all scenarios, runs the loop, captures charts, and packs evidence)*
 
-5.  **Review Evidence Pack**:
-    Open `evidence/run_report.pdf` or examine the generated `gco_evidence_*.zip`.
+### 📦 Key Capabilities
 
-## 📦 Key Capabilities (Phase 5)
+- **Unified Gateway (PEP)**: The `gateway` (port 8000) is the sole entrypoint, enforcing Zero-Trust via OPA.
+- **Extracted Microservices**: Every functional domain (Mode, Corridor, Optimize, KPI, Policy, Twin, Evidence, OT, LLM) is now a dedicated service.
+- **Legacy Retirement**: The monolith (`app/api/`) remains in the repo as a migration artifact only.
 
-- **Scenario S1: Sustainability-First**: Energy consumption drops 3%+, triggering a MARL proposal to tighten temperature upper bounds.
-- **Scenario S2: Quality Guardrail**: Sporadic quality deviations trigger a widening of temperature bounds for safety.
-- **Scenario S3: Yield Boost**: Trending yields below 85% trigger an increase in flow upper limits.
-- **Evidence Pack**: Self-contained ZIP with PNG charts, KPI CSVs, Version JSONs, and an auto-generated PDF summary.
-- **Tamper-Evident Audit**: Chained SHA-256 hashes for all system actions (mode changes, approvals, writes).
-- **Safety-First NMPC**: Real-time Nonlinear Model Predictive Control (CasADi) with corridor constraint enforcement.
-
-## 🛡️ Stage 0: Governance Control Plane
-We are actively refactoring towards a microservices architecture. Stage 0 establishes a dedicated Governance Control Plane.
-- **Run Governance Service**: `make governance` (runs on port 8001)
-- **Run Full Stack (Docker)**: `make up`
-- **Smoke Test**: `make stage0-smoke`
-
-The new `governance-service` exclusively owns bounds, policies, and the tamper-evident audit chain. To maintain backwards compatibility and preserve the deterministic demo, the monolith currently proxies or mirrors these endpoints until full decoupling is completed.
-
-## 🛡️ Stage 1: PEP Gateway & Optimizer Service
-### PEP Gateway
-A dedicated API Gateway that serves as a Zero-Trust Policy Enforcement Point (PEP), backed by Open Policy Agent (OPA).
-- **Single public entrypoint**: Gateway on `:8000`.
-- **Zero-Trust Edge**: Enforces AuthN (JWT) and AuthZ (via external OPA PDP).
-
-### Optimizer Service
-Extracted CasADi/IPOPT NMPC solver into a dedicated microservice.
-- **Port**: `:8002`
-- **Dynamic Context**: Fetches bounds and weights from the Governance plane seamlessly.
-
-- **Run Full Stack**: `make stage1-gateway`
-- **Smoke Tests**: `make stage1-smoke` and `make stage1-opt-smoke`
-- **Demo Note**: The `demo.py` and Streamlit UI now point to the Gateway (`API_BASE` -> Gateway) while keeping all endpoint paths intact.
+## 🛡️ Runtime Endpoint Ownership
+Refer to [docs/runtime_ownership.md](docs/runtime_ownership.md) for a full mapping of route prefixes to service owners.
 
 ## 🛠️ Tech Stack
 - **Optimizer**: Python, CasADi (IPOPT), NumPy, SciPy

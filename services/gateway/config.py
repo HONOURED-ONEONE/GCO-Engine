@@ -2,7 +2,6 @@ import os
 
 GOVERNANCE_BASE = os.environ.get("GOVERNANCE_BASE", "http://localhost:8001")
 OPTIMIZER_BASE = os.environ.get("OPTIMIZER_BASE", "http://localhost:8002")
-MONOLITH_BASE = os.environ.get("MONOLITH_BASE", "http://localhost:8003")
 LLM_BASE = os.environ.get("LLM_BASE", "http://localhost:8004")
 KPI_BASE = os.environ.get("KPI_BASE", "http://localhost:8005")
 POLICY_BASE = os.environ.get("POLICY_BASE", "http://localhost:8006")

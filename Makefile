@@ -37,7 +37,7 @@ stage0-smoke:
 	./scripts/stage0_smoke.sh
 
 stage1-gateway:
-	docker-compose up --build gateway governance optimizer api opa
+	docker-compose up --build gateway governance optimizer opa
 
 stage1-smoke:
 	bash scripts/stage1_gateway_smoke.sh
@@ -46,19 +46,19 @@ stage1-opt-smoke:
 	bash scripts/stage1_opt_smoke.sh
 
 stage2-up:
-	docker-compose up --build gateway governance optimizer api llm opa
+	docker-compose up --build gateway governance optimizer llm opa
 
 stage2-smoke:
 	bash scripts/stage2_llm_smoke.sh
 
 stage3-up:
-	docker-compose up --build gateway governance optimizer api kpi opa llm
+	docker-compose up --build gateway governance optimizer kpi opa llm
 
 stage3-smoke:
 	bash scripts/stage3_kpi_smoke.sh
 
 stage4-up:
-	docker-compose up --build gateway governance optimizer api kpi opa llm twin policy
+	docker-compose up --build gateway governance optimizer kpi opa llm twin policy
 
 stage4-smoke:
 	bash scripts/stage4_policy_smoke.sh
@@ -67,13 +67,13 @@ evidence:
 	uvicorn services.evidence.main:app --host 0.0.0.0 --port 8008 --reload
 
 stage5-up:
-	docker-compose up --build gateway governance optimizer kpi policy api evidence opa llm
+	docker-compose up --build gateway governance optimizer kpi policy evidence opa llm
 
 stage5-smoke:
 	bash scripts/stage5_evidence_smoke.sh
 
 stage6-up:
-	docker-compose up --build gateway governance optimizer kpi policy api evidence opa llm twin
+	docker-compose up --build gateway governance optimizer kpi policy evidence opa llm twin
 
 stage6-smoke:
 	bash scripts/stage6_twin_pilot_smoke.sh
@@ -82,10 +82,16 @@ ot:
 	uvicorn services.ot.main:app --host 0.0.0.0 --port 8009 --reload
 
 stage7-up:
-	docker-compose up --build gateway governance optimizer kpi policy api evidence opa llm twin ot
+	docker-compose up --build gateway governance optimizer kpi policy evidence opa llm twin ot
 
 stage7-smoke:
 	bash scripts/stage7_ot_smoke.sh
+
+cutover-up:
+	docker-compose up -d --build
+
+cutover-smoke:
+	bash scripts/final_cutover_smoke.sh
 
 ui:
 	streamlit run app/frontend/app.py --server.port 8501
@@ -119,7 +125,7 @@ clean-demo:
 	rm -rf evidence/*
 	rm -f scenario_*.json
 	rm -f gco_evidence_*.zip
-	python3 -c "from app.api.utils.io import init_files; init_files()"
+	python3 -c "from services.governance.utils.io import init_files; init_files()"
 
 test:
 	python3 -m pytest tests/ services/gateway/tests/

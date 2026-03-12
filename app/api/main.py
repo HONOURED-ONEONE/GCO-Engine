@@ -1,3 +1,11 @@
+"""
+LEGACY MONOLITH (Retired)
+-------------------------
+This file and the app.api module are retained for archival and migration reference only.
+The production GCO Engine now runs on a pure microservices stack (see services/*).
+This component is NOT used in the production runtime as of the Final Cut-Over.
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import mode, optimize, kpi, corridor, ot, policy, evidence, twin, pilot
