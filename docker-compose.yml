@@ -9,6 +9,7 @@ services:
       OPTIMIZER_BASE:  http://optimizer:8002
       MONOLITH_BASE:   http://api:8003
       OPA_BASE:        http://opa:8181
+      LLM_BASE:        http://llm:8004
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
@@ -19,6 +20,7 @@ services:
       - api
       - governance
       - optimizer
+      - llm
 
   opa:
     image: openpolicyagent/opa:latest
@@ -71,6 +73,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  llm:
+    build:
+      context: services/llm
+      dockerfile: Dockerfile
+    command: uvicorn services.llm.main:app --host 0.0.0.0 --port 8004 --reload
+    ports:
+      - "8004:8004"
+    environment:
+      PROVIDER: "gemini"
+      MODEL_ID: "gemini-1.5-pro"
+      LLM_API_KEY: "unset"
+      LLM_TIMEOUT: "20"
+      LLM_MAX_TOKENS: "1200"
+      LLM_TEMPERATURE: "0.2"
+      LLM_DETERMINISTIC: "true"
+      GOVERNANCE_BASE: "http://governance:8001"
+      ALLOW_ORIGINS: "*"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
 
   frontend:
     build: .

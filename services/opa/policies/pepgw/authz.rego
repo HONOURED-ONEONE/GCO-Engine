@@ -53,6 +53,31 @@ allow {
 }
 
 allow {
+  route_is("/llm/proposal/")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/llm/proposal/")
+  role == "Admin"
+}
+
+allow {
+  path == "/llm/evidence/summary"
+  role == "Operator"
+}
+
+allow {
+  path == "/llm/evidence/summary"
+  role == "Engineer"
+}
+
+allow {
+  path == "/llm/evidence/summary"
+  role == "Admin"
+}
+
+allow {
   claims.scopes[_] == "corridor:approve"
   path == "/corridor/approve"
   method == "POST"

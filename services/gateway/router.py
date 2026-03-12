@@ -4,7 +4,7 @@ import uuid
 from typing import Optional
 import time
 import asyncio
-from .config import GOVERNANCE_BASE, OPTIMIZER_BASE, MONOLITH_BASE, GATEWAY_SYSTEM_TOKEN
+from .config import GOVERNANCE_BASE, OPTIMIZER_BASE, MONOLITH_BASE, LLM_BASE, GATEWAY_SYSTEM_TOKEN
 from .security import extract_claims
 from .opa_client import evaluate
 
@@ -20,7 +20,7 @@ async def root():
 @router.get("/gateway/status")
 async def status():
     statuses = {}
-    for name, base in [("governance", GOVERNANCE_BASE), ("optimizer", OPTIMIZER_BASE), ("monolith", MONOLITH_BASE)]:
+    for name, base in [("governance", GOVERNANCE_BASE), ("optimizer", OPTIMIZER_BASE), ("monolith", MONOLITH_BASE), ("llm", LLM_BASE)]:
         try:
             r = await client.get(f"{base}/")
             statuses[name] = "up" if r.status_code == 200 else "error"
@@ -56,6 +56,9 @@ async def proxy(path: str, request: Request):
     elif full_path.startswith("/optimize/"):
         upstream_base = OPTIMIZER_BASE
         service_name = "optimizer"
+    elif full_path.startswith("/llm/"):
+        upstream_base = LLM_BASE
+        service_name = "llm"
     else:
         upstream_base = MONOLITH_BASE
         service_name = "monolith"
