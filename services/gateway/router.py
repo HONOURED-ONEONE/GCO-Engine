@@ -4,7 +4,7 @@ import uuid
 from typing import Optional
 import time
 import asyncio
-from .config import GOVERNANCE_BASE, OPTIMIZER_BASE, MONOLITH_BASE, LLM_BASE, KPI_BASE, GATEWAY_SYSTEM_TOKEN
+from .config import GOVERNANCE_BASE, OPTIMIZER_BASE, MONOLITH_BASE, LLM_BASE, KPI_BASE, POLICY_BASE, GATEWAY_SYSTEM_TOKEN
 from .security import extract_claims
 from .opa_client import evaluate
 
@@ -20,7 +20,7 @@ async def root():
 @router.get("/gateway/status")
 async def status():
     statuses = {}
-    for name, base in [("governance", GOVERNANCE_BASE), ("optimizer", OPTIMIZER_BASE), ("monolith", MONOLITH_BASE), ("llm", LLM_BASE), ("kpi", KPI_BASE)]:
+    for name, base in [("governance", GOVERNANCE_BASE), ("optimizer", OPTIMIZER_BASE), ("monolith", MONOLITH_BASE), ("llm", LLM_BASE), ("kpi", KPI_BASE), ("policy", POLICY_BASE)]:
         try:
             r = await client.get(f"{base}/")
             statuses[name] = "up" if r.status_code == 200 else "error"
@@ -62,6 +62,9 @@ async def proxy(path: str, request: Request):
     elif full_path.startswith("/kpi/"):
         upstream_base = KPI_BASE
         service_name = "kpi"
+    elif full_path.startswith("/policy/"):
+        upstream_base = POLICY_BASE
+        service_name = "policy"
     else:
         upstream_base = MONOLITH_BASE
         service_name = "monolith"

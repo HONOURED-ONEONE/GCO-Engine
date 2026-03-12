@@ -20,3 +20,4 @@ asyncua
 fpdf2
 matplotlib
 PyYAML
+filelock==3.12.3

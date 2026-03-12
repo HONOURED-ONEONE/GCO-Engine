@@ -11,6 +11,7 @@ services:
       OPA_BASE:        http://opa:8181
       LLM_BASE:        http://llm:8004
       KPI_BASE:        http://kpi:8005
+      POLICY_BASE:     http://policy:8006
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
@@ -23,6 +24,7 @@ services:
       - optimizer
       - llm
       - kpi
+      - policy
 
   opa:
     image: openpolicyagent/opa:latest
@@ -90,6 +92,24 @@ services:
       - "8005:8005"
     healthcheck:
       test: ["CMD","curl","-f","http://localhost:8005/"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
+  policy:
+    build: .
+    command: uvicorn services.policy.main:app --host 0.0.0.0 --port 8006 --reload
+    environment:
+      GOVERNANCE_BASE: "http://governance:8001"
+      KPI_BASE: "http://kpi:8005"
+      TWIN_BASE: "http://twin:8007"
+      ALLOW_ORIGINS: "*"
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8006:8006"
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:8006/"]
       interval: 10s
       timeout: 2s
       retries: 5

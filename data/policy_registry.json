@@ -41,5 +41,48 @@
       },
       "description": "Offline trained from 15 trajectories"
     }
-  ]
+  ],
+  "items": [
+    {
+      "trained_at": "2026-03-12T14:24:31Z",
+      "notes": "Trained on context v3|sustainability_first for 1 epochs",
+      "stats": {
+        "uncertainty_mean": 0.304675134594813
+      },
+      "id": "p-1773325471"
+    },
+    {
+      "trained_at": "2026-03-12T14:24:51Z",
+      "notes": "Trained on context v3|sustainability_first for 1 epochs",
+      "stats": {
+        "uncertainty_mean": 0.21692414523193157
+      },
+      "id": "p-1773325491"
+    },
+    {
+      "trained_at": "2026-03-12T14:25:23Z",
+      "notes": "Trained on context v3|sustainability_first for 1 epochs",
+      "stats": {
+        "uncertainty_mean": 0.1786666666666667
+      },
+      "id": "p-1773325523"
+    },
+    {
+      "trained_at": "2026-03-12T14:25:47Z",
+      "notes": "Trained on context v3|sustainability_first for 1 epochs",
+      "stats": {
+        "uncertainty_mean": 0.15597393093377013
+      },
+      "id": "p-1773325547"
+    },
+    {
+      "trained_at": "2026-03-12T14:27:24Z",
+      "notes": "Trained on context v3|sustainability_first for 1 epochs",
+      "stats": {
+        "uncertainty_mean": 0.140528016302152
+      },
+      "id": "p-1773325644"
+    }
+  ],
+  "active": "p-1773325644"
 }

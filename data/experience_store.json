@@ -180,5 +180,267 @@
       "reward": 0.9,
       "policy_id": "p-003"
     }
-  ]
+  ],
+  "by_key": {
+    "v3|efficiency_first": [
+      {
+        "batch_id": "B10",
+        "energy_kwh": 96.4,
+        "yield_pct": 91.2,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B11",
+        "energy_kwh": 95.0,
+        "yield_pct": 91.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B12",
+        "energy_kwh": 93.0,
+        "yield_pct": 92.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B10",
+        "energy_kwh": 96.4,
+        "yield_pct": 91.2,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B11",
+        "energy_kwh": 95.0,
+        "yield_pct": 91.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B12",
+        "energy_kwh": 93.0,
+        "yield_pct": 92.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B10",
+        "energy_kwh": 96.4,
+        "yield_pct": 91.2,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B11",
+        "energy_kwh": 95.0,
+        "yield_pct": 91.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B12",
+        "energy_kwh": 93.0,
+        "yield_pct": 92.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B10",
+        "energy_kwh": 96.4,
+        "yield_pct": 91.2,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B11",
+        "energy_kwh": 95.0,
+        "yield_pct": 91.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B12",
+        "energy_kwh": 93.0,
+        "yield_pct": 92.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B10",
+        "energy_kwh": 96.4,
+        "yield_pct": 91.2,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B11",
+        "energy_kwh": 95.0,
+        "yield_pct": 91.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      },
+      {
+        "batch_id": "B12",
+        "energy_kwh": 93.0,
+        "yield_pct": 92.0,
+        "quality_deviation": false,
+        "at": "ISO",
+        "weights_at_time": {
+          "energy": 0.33,
+          "quality": 0.34,
+          "yield": 0.33
+        },
+        "features": {
+          "trend_energy": 0.0,
+          "trend_yield": 0.0,
+          "anomaly": 0
+        }
+      }
+    ]
+  },
+  "meta": {
+    "last_update": "2026-03-12T14:27:24.562551"
+  }
 }
