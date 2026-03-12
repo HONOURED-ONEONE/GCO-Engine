@@ -39,6 +39,14 @@ Phase 5: Judge Demo Automation & Evidence Pack
 - **Tamper-Evident Audit**: Chained SHA-256 hashes for all system actions (mode changes, approvals, writes).
 - **Safety-First NMPC**: Real-time Nonlinear Model Predictive Control (CasADi) with corridor constraint enforcement.
 
+## 🛡️ Stage 0: Governance Control Plane
+We are actively refactoring towards a microservices architecture. Stage 0 establishes a dedicated Governance Control Plane.
+- **Run Governance Service**: `make governance` (runs on port 8001)
+- **Run Full Stack (Docker)**: `make up`
+- **Smoke Test**: `make stage0-smoke`
+
+The new `governance-service` exclusively owns bounds, policies, and the tamper-evident audit chain. To maintain backwards compatibility and preserve the deterministic demo, the monolith currently proxies or mirrors these endpoints until full decoupling is completed.
+
 ## 🛠️ Tech Stack
 - **Optimizer**: Python, CasADi (IPOPT), NumPy, SciPy
 - **Backend**: FastAPI, Pydantic, OTel

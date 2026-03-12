@@ -1,10 +1,19 @@
-.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot
+.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot governance up stage0-smoke
 
 install:
 	python3 -m pip install -r requirements.txt
 
 api:
 	uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+governance:
+	uvicorn services.governance.main:app --host 0.0.0.0 --port 8001 --reload
+
+up:
+	docker-compose up -d --build
+
+stage0-smoke:
+	./scripts/stage0_smoke.sh
 
 ui:
 	streamlit run app/frontend/app.py --server.port 8501

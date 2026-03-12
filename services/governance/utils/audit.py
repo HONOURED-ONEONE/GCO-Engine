@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 import hashlib
 import json
-from app.api.utils.io import read_json, write_json, REGISTRY_FILE
+from services.governance.utils.io import read_json, write_json, REGISTRY_FILE
 
 def calculate_hash(prev_hash: str, entry_data: Dict[str, Any]) -> str:
     content = f"{prev_hash}|{json.dumps(entry_data, sort_keys=True, separators=(',', ':'))}"
