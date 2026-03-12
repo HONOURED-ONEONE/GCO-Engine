@@ -41,8 +41,45 @@ The Golden Corridor Optimization (GCO) Engine has completed its transition to a 
 - **Extracted Microservices**: Every functional domain (Mode, Corridor, Optimize, KPI, Policy, Twin, Evidence, OT, LLM) is now a dedicated service.
 - **Legacy Retirement**: The monolith (`app/api/`) remains in the repo as a migration artifact only.
 
-## 🛡️ Runtime Endpoint Ownership
-Refer to [docs/runtime_ownership.md](docs/runtime_ownership.md) for a full mapping of route prefixes to service owners.
+## 🛡️ Production Hardening Wave
+
+The system has been upgraded from a pilot runtime to a **production-credible** stack with a focus on durability, security, and operational safety.
+
+### 📦 Key Upgrades
+
+- **Durable Persistence**: Critical services (Governance, KPI, Policy, OT) now default to **database-backed storage** (SQLAlchemy + Alembic).
+- **Security Operations**: Support for `SECURITY_MODE=prod` with strict JWT validation and hardened OPA route policies.
+- **OT Commissioning**: Enhanced OT service with `COMMISSIONING_MODE`, write-blockers, and a comprehensive `verify` endpoint.
+- **Operational Procedures**: Automated backup, restore, and rollback scripts for disaster recovery and safe configuration changes.
+- **Resilience Testing**: New soak and failure matrix testing harness to prove stack stability under load and partial failure.
+
+### 🛠️ Operational Commands
+
+- **Persistence Migration**:
+  ```bash
+  python3 scripts/migrate_json_to_db_governance.py
+  # (Repeat for kpi, policy, ot)
+  ```
+- **Backup & Restore**:
+  ```bash
+  make backup
+  make restore TIMESTAMP=20260312_120000
+  ```
+- **Rollback**:
+  ```bash
+  make rollback-governance VERSION=v1
+  make rollback-policy POLICY_ID=p-123
+  ```
+- **Hardening Smoke Test**:
+  ```bash
+  make prod-hardening-smoke
+  ```
+
+### 📄 New Documentation
+- [docs/production_gap_closure.md](docs/production_gap_closure.md)
+- [docs/security_model.md](docs/security_model.md)
+- [docs/ot_commissioning_checklist.md](docs/ot_commissioning_checklist.md)
+- [docs/resilience_matrix.md](docs/resilience_matrix.md)
 
 ## 🛠️ Tech Stack
 - **Optimizer**: Python, CasADi (IPOPT), NumPy, SciPy

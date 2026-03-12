@@ -16,3 +16,9 @@ GATEWAY_JWT_SECRET = os.environ.get("GATEWAY_JWT_SECRET", "secret")
 GATEWAY_VALIDATE_AUD = os.environ.get("GATEWAY_VALIDATE_AUD", "false").lower() == "true"
 GATEWAY_SYSTEM_TOKEN = os.environ.get("GATEWAY_SYSTEM_TOKEN", "system_01")
 GATEWAY_LIMITS = os.environ.get("GATEWAY_LIMITS", "")
+
+SECURITY_MODE = os.environ.get("SECURITY_MODE", "dev").lower()
+JWT_ISSUER = os.environ.get("JWT_ISSUER", "gco-engine")
+JWT_AUDIENCE = os.environ.get("JWT_AUDIENCE", "gco-services")
+JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "RS256")
+JWKS_CACHE_TTL = int(os.environ.get("JWKS_CACHE_TTL", "3600"))

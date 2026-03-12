@@ -15,6 +15,7 @@ services:
       PILOT_BASE:      http://twin:8007
       EVIDENCE_BASE:   http://evidence:8008
       OT_BASE:         http://ot:8009
+      SECURITY_MODE:   dev
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
@@ -28,6 +29,23 @@ services:
       - kpi
       - policy
       - twin
+      - db
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=gco_admin
+      - POSTGRES_PASSWORD=gco_secret
+      - POSTGRES_DB=gco_engine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gco_admin -d gco_engine"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   opa:
     image: openpolicyagent/opa:latest
@@ -38,20 +56,6 @@ services:
       - "8181:8181"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  api:
-    profiles: ["legacy"]
-    build: .
-    ports:
-      - "8003:8003"
-    volumes:
-      - ./data:/app/data
-    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8003 --reload
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -73,6 +77,9 @@ services:
     build: .
     ports:
       - "8001:8001"
+    environment:
+      - GOVERNANCE_DB_URL=postgresql://gco_admin:gco_secret@db:5432/gco_engine
+      - STORAGE_BACKEND=database
     volumes:
       - ./data:/app/data
     command: uvicorn services.governance.main:app --host 0.0.0.0 --port 8001 --reload
@@ -81,15 +88,20 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
 
   kpi:
     build: .
     command: uvicorn services.kpi.main:app --host 0.0.0.0 --port 8005 --reload
     environment:
-      GOVERNANCE_BASE: "http://governance:8001"
-      POLICY_NOTIFY_BASE: ""
-      YIELD_MIN: "80.0"
-      ALLOW_ORIGINS: "*"
+      - GOVERNANCE_BASE=http://governance:8001
+      - POLICY_NOTIFY_BASE=
+      - YIELD_MIN=80.0
+      - ALLOW_ORIGINS=*
+      - KPI_DB_URL=postgresql://gco_admin:gco_secret@db:5432/gco_engine
+      - STORAGE_BACKEND=database
     volumes:
       - ./data:/app/data
     ports:
@@ -99,15 +111,20 @@ services:
       interval: 10s
       timeout: 2s
       retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
 
   policy:
     build: .
     command: uvicorn services.policy.main:app --host 0.0.0.0 --port 8006 --reload
     environment:
-      GOVERNANCE_BASE: "http://governance:8001"
-      KPI_BASE: "http://kpi:8005"
-      TWIN_BASE: "http://twin:8007"
-      ALLOW_ORIGINS: "*"
+      - GOVERNANCE_BASE=http://governance:8001
+      - KPI_BASE=http://kpi:8005
+      - TWIN_BASE=http://twin:8007
+      - ALLOW_ORIGINS=*
+      - POLICY_DB_URL=postgresql://gco_admin:gco_secret@db:5432/gco_engine
+      - STORAGE_BACKEND=database
     volumes:
       - ./data:/app/data
     ports:
@@ -117,6 +134,9 @@ services:
       interval: 10s
       timeout: 2s
       retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
 
   twin:
     build: .
@@ -132,29 +152,6 @@ services:
       - "8007:8007"
     healthcheck:
       test: ["CMD","curl","-f","http://localhost:8007/"]
-      interval: 10s
-      timeout: 2s
-      retries: 5
-
-  llm:
-    build:
-      context: services/llm
-      dockerfile: Dockerfile
-    command: uvicorn services.llm.main:app --host 0.0.0.0 --port 8004 --reload
-    ports:
-      - "8004:8004"
-    environment:
-      PROVIDER: "gemini"
-      MODEL_ID: "gemini-1.5-pro"
-      LLM_API_KEY: "unset"
-      LLM_TIMEOUT: "20"
-      LLM_MAX_TOKENS: "1200"
-      LLM_TEMPERATURE: "0.2"
-      LLM_DETERMINISTIC: "true"
-      GOVERNANCE_BASE: "http://governance:8001"
-      ALLOW_ORIGINS: "*"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/"]
       interval: 10s
       timeout: 2s
       retries: 5
@@ -188,13 +185,15 @@ services:
       dockerfile: Dockerfile
     command: uvicorn services.ot.main:app --host 0.0.0.0 --port 8009 --reload
     environment:
-      GOVERNANCE_BASE: "http://governance:8001"
-      FEATURE_SIMULATED_OPCUA: "true"
-      FEATURE_GUARDED: "false"
-      MIN_WRITE_INTERVAL_SEC: "10"
-      READBACK_TOLERANCE_TEMPERATURE: "0.2"
-      READBACK_TOLERANCE_FLOW: "0.1"
-      ALLOW_ORIGINS: "*"
+      - GOVERNANCE_BASE=http://governance:8001
+      - FEATURE_SIMULATED_OPCUA=true
+      - FEATURE_GUARDED=false
+      - MIN_WRITE_INTERVAL_SEC=10
+      - READBACK_TOLERANCE_TEMPERATURE=0.2
+      - READBACK_TOLERANCE_FLOW=0.1
+      - ALLOW_ORIGINS=*
+      - OT_DB_URL=postgresql://gco_admin:gco_secret@db:5432/gco_engine
+      - STORAGE_BACKEND=database
     volumes:
       - ./data:/app/data
     ports:
@@ -204,6 +203,9 @@ services:
       interval: 10s
       timeout: 2s
       retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend:
     build: .
@@ -229,3 +231,6 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+
+volumes:
+  postgres_data:

@@ -10,6 +10,7 @@ from ..services.opcua_client import opcua_client
 from ..services.interlocks import (
     check_armed, check_bounds, check_alarms, check_rate_limit, confirm_readback
 )
+from ..services.commissioning import verify_readiness, COMMISSIONING_MODE
 from ..clients.governance_client import governance_client
 from ..security.rbac import require_role
 from ..utils.metrics import metrics
@@ -82,6 +83,8 @@ async def disarm(claims: dict = Depends(require_role(["Operator", "Engineer", "A
 
 @router.post("/shadow/write")
 async def shadow_write(req: WriteRequest, claims: dict = Depends(require_role(["Operator", "Engineer", "Admin"]))):
+    if COMMISSIONING_MODE:
+        return {"ok": False, "reason": "commissioning_mode_active"}
     start_time = time.time()
     config_dict = state_manager.get_config()
     if not config_dict:
@@ -126,6 +129,8 @@ async def shadow_write(req: WriteRequest, claims: dict = Depends(require_role(["
 
 @router.post("/guarded/write")
 async def guarded_write(req: WriteRequest, claims: dict = Depends(require_role(["Engineer", "Admin"]))):
+    if COMMISSIONING_MODE:
+        return {"ok": False, "reason": "commissioning_mode_active"}
     start_time = time.time()
     if not FEATURE_GUARDED:
         return {"ok": False, "reason": "guarded_disabled"}
@@ -136,7 +141,6 @@ async def guarded_write(req: WriteRequest, claims: dict = Depends(require_role([
     config = OTConfig(**config_dict)
     state = state_manager.get_state()
     
-    # Audit attempt
     await governance_client.post_audit(
         "ot_guarded_write_attempt", 
         {"setpoints": req.setpoints, "notes": req.notes}, 
@@ -168,7 +172,6 @@ async def guarded_write(req: WriteRequest, claims: dict = Depends(require_role([
     if not bounds_ok:
         return {"ok": False, "reason": "bounds_violation", "violations": violations}
 
-    # Preparation for revert
     last_good = state.get("last_good_setpoint", {})
     
     # 5. Write to live
@@ -186,7 +189,6 @@ async def guarded_write(req: WriteRequest, claims: dict = Depends(require_role([
     
     if not rb_ok:
         metrics.write_failures += 1
-        # Revert
         revert_tags = {config.tag_map.live_setpoints[k]: v for k, v in last_good.items() if k in config.tag_map.live_setpoints}
         revert_ok, rev_details = await opcua_client.write_nodes(revert_tags)
         metrics.reverts += 1
@@ -212,6 +214,36 @@ async def guarded_write(req: WriteRequest, claims: dict = Depends(require_role([
     metrics.record_call((time.time() - start_time) * 1000)
     
     return {"ok": True}
+
+@router.post("/rollback")
+async def rollback(claims: dict = Depends(require_role(["Admin"]))):
+    state = state_manager.get_state()
+    last_good = state.get("last_good_setpoint", {})
+    if not last_good:
+        raise HTTPException(status_code=400, detail="No last good setpoint to rollback to")
+    
+    config_dict = state_manager.get_config()
+    if not config_dict:
+        raise HTTPException(status_code=400, detail="OT service not configured")
+    config = OTConfig(**config_dict)
+    
+    revert_tags = {config.tag_map.live_setpoints[k]: v for k, v in last_good.items() if k in config.tag_map.live_setpoints}
+    ok, details = await opcua_client.write_nodes(revert_tags)
+    
+    await governance_client.post_audit(
+        "ot_manual_rollback", 
+        {"setpoints": last_good, "ok": ok, "details": details}, 
+        claims.get("sub", "admin")
+    )
+    
+    if not ok:
+        raise HTTPException(status_code=500, detail=f"Rollback failed: {details}")
+        
+    return {"ok": True, "message": "Rollback successful", "setpoints": last_good}
+
+@router.post("/commissioning/verify")
+async def commissioning_verify(claims: dict = Depends(require_role(["Engineer", "Admin"]))):
+    return await verify_readiness()
 
 @router.get("/status", response_model=OTStatus)
 async def get_status(claims: dict = Depends(require_role(["Operator", "Engineer", "Admin"]))):

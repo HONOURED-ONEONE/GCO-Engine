@@ -8,7 +8,9 @@ from services.governance.models.schemas import (
     CorridorProposeResponse,
     CorridorProposalsResponse,
     CorridorAuditResponse,
-    CorridorDiffResponse
+    CorridorDiffResponse,
+    CorridorRollbackRequest,
+    CorridorRollbackResponse
 )
 from services.governance.services.corridor import (
     get_active_corridor, 
@@ -16,7 +18,8 @@ from services.governance.services.corridor import (
     approve_proposal, 
     propose_corridor_change,
     get_all_proposals,
-    get_corridor_diff
+    get_corridor_diff,
+    rollback_version
 )
 from services.governance.utils.audit import get_audit_entries
 from services.governance.utils.security import check_role
@@ -78,3 +81,10 @@ async def corridor_diff(from_v: str, to_v: str, user: dict = Depends(check_role(
     if not diff:
         raise HTTPException(status_code=404, detail="One or both versions not found")
     return CorridorDiffResponse(**diff)
+
+@router.post("/rollback", response_model=CorridorRollbackResponse)
+async def rollback(request: CorridorRollbackRequest, user: dict = Depends(check_role(["Admin"]))):
+    ok, msg = rollback_version(request.target_version, user["id"])
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return CorridorRollbackResponse(status="success", message=msg)

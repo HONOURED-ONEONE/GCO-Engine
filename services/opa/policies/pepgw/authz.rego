@@ -9,238 +9,9 @@ role := claims.role
 
 route_is(path_prefix) { startswith(path, path_prefix) }
 
+# Admin only
 allow {
-  method == "POST"
-  path == "/corridor/approve"
   role == "Admin"
-}
-
-allow {
-  method == "POST"
-  path == "/corridor/propose"
-  role == "Engineer"
-}
-
-allow {
-  method == "POST"
-  path == "/corridor/propose"
-  role == "Admin"
-}
-
-allow {
-  route_is("/mode/set")
-  role == "Operator"
-}
-
-allow {
-  route_is("/mode/set")
-  role == "Admin"
-}
-
-allow {
-  route_is("/optimize/")
-  role == "Operator"
-}
-
-allow {
-  route_is("/optimize/")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/optimize/")
-  role == "Admin"
-}
-
-allow {
-  route_is("/llm/proposal/")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/llm/proposal/")
-  role == "Admin"
-}
-
-allow {
-  path == "/llm/evidence/summary"
-  role == "Operator"
-}
-
-allow {
-  path == "/llm/evidence/summary"
-  role == "Engineer"
-}
-
-allow {
-  route_is("/llm/evidence/summary")
-  role == "Admin"
-}
-
-allow {
-  route_is("/evidence/snapshot")
-  role == "Operator"
-}
-
-allow {
-  route_is("/evidence/snapshot")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/evidence/snapshot")
-  role == "Admin"
-}
-
-allow {
-  route_is("/evidence/files")
-  role == "Operator"
-}
-
-allow {
-  route_is("/evidence/files")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/evidence/files")
-  role == "Admin"
-}
-
-allow {
-  route_is("/evidence/capture")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/evidence/capture")
-  role == "Admin"
-}
-
-allow {
-  route_is("/evidence/pack")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/evidence/pack")
-  role == "Admin"
-}
-
-allow {
-  route_is("/evidence/health")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/evidence/health")
-  role == "Admin"
-}
-
-allow {
-  route_is("/ot/config")
-  role == "Admin"
-}
-
-allow {
-  route_is("/ot/arm")
-  role == "Operator"
-}
-
-allow {
-  route_is("/ot/arm")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/ot/arm")
-  role == "Admin"
-}
-
-allow {
-  route_is("/ot/disarm")
-  role == "Operator"
-}
-
-allow {
-  route_is("/ot/disarm")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/ot/disarm")
-  role == "Admin"
-}
-
-allow {
-  route_is("/ot/shadow/write")
-  role == "Operator"
-}
-
-allow {
-  route_is("/ot/shadow/write")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/ot/shadow/write")
-  role == "Admin"
-}
-
-allow {
-  route_is("/ot/guarded/write")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/ot/guarded/write")
-  role == "Admin"
-}
-
-allow {
-  route_is("/ot/status")
-  role == "Operator"
-}
-
-allow {
-  route_is("/ot/status")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/ot/status")
-  role == "Admin"
-}
-
-allow {
-  route_is("/ot/alarms")
-  role == "Operator"
-}
-
-allow {
-  route_is("/ot/alarms")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/ot/alarms")
-  role == "Admin"
-}
-
-allow {
-  route_is("/ot/health")
-  role == "Engineer"
-}
-
-allow {
-  route_is("/ot/health")
-  role == "Admin"
-}
-
-allow {
-  claims.scopes[_] == "corridor:approve"
-  path == "/corridor/approve"
-  method == "POST"
 }
 
 # System role can do anything
@@ -248,17 +19,187 @@ allow {
   role == "System"
 }
 
-# Any authenticated role can do GET reads for demo simplicity (except restricted ones)
+# Governance
 allow {
-  method == "GET"
-  not restricted_route
+  method == "POST"
+  path == "/corridor/propose"
+  role == "Engineer"
 }
 
-restricted_route {
-  route_is("/evidence/")
+allow {
+  path == "/corridor/version"
+  any_authenticated_role
+}
+
+allow {
+  path == "/corridor/proposals"
+  any_authenticated_role
+}
+
+allow {
+  path == "/corridor/diff"
+  role == "Engineer"
+}
+
+# Mode
+allow {
+  route_is("/mode/set")
+  role == "Operator"
+}
+
+allow {
+  path == "/mode/current"
+  any_authenticated_role
+}
+
+allow {
+  path == "/mode/policy"
+  any_authenticated_role
+}
+
+# Optimizer
+allow {
+  route_is("/optimize/")
+  any_authenticated_role
+}
+
+# KPI
+allow {
+  path == "/kpi/ingest"
+  role == "Operator"
+}
+
+allow {
+  path == "/kpi/recent"
+  any_authenticated_role
+}
+
+allow {
+  path == "/kpi/stats"
+  role == "Engineer"
+}
+
+# Policy
+allow {
+  path == "/policy/maybe-propose"
+  role == "Operator"
+}
+
+allow {
+  path == "/policy/maybe-propose"
+  role == "Engineer"
+}
+
+allow {
+  path == "/policy/train"
+  role == "Engineer"
+}
+
+allow {
+  route_is("/policy/activate/")
+  role == "Engineer"
+}
+
+allow {
+  path == "/policy/active"
+  any_authenticated_role
+}
+
+allow {
+  path == "/policy/list"
+  any_authenticated_role
+}
+
+# Evidence
+allow {
+  route_is("/evidence/snapshot")
+  any_authenticated_role
+}
+
+allow {
+  route_is("/evidence/files")
+  any_authenticated_role
+}
+
+allow {
+  route_is("/evidence/capture")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/evidence/pack")
+  role == "Engineer"
+}
+
+# OT
+allow {
+  route_is("/ot/config")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/arm")
+  role == "Operator"
+}
+
+allow {
+  route_is("/ot/arm")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/disarm")
+  any_authenticated_role
+}
+
+allow {
+  route_is("/ot/shadow/write")
+  role == "Operator"
+}
+
+allow {
+  route_is("/ot/shadow/write")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/guarded/write")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/status")
+  any_authenticated_role
+}
+
+allow {
+  route_is("/ot/alarms")
+  any_authenticated_role
+}
+
+# LLM
+allow {
+  route_is("/llm/proposal/")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/llm/evidence/summary")
+  any_authenticated_role
+}
+
+# Helpers
+any_authenticated_role {
+  role == "Operator"
+}
+any_authenticated_role {
+  role == "Engineer"
+}
+any_authenticated_role {
+  role == "Admin"
 }
 
 opa_output := {
   "allow": allow,
-  "headers": {"X-Policy-Version": "v1-stage1"}
+  "headers": {"X-Policy-Version": "v1-prod-hardening"}
 }

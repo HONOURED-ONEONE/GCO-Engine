@@ -1,7 +1,31 @@
-.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot governance up stage0-smoke gateway opa stage1-gateway stage1-smoke optimizer stage1-opt-smoke llm stage2-up stage2-smoke stage3-up stage3-smoke stage4-up stage4-smoke stage5-up stage5-smoke stage6-up stage6-smoke ot stage7-up stage7-smoke
+.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot governance up stage0-smoke gateway opa stage1-gateway stage1-smoke optimizer stage1-opt-smoke llm stage2-up stage2-smoke stage3-up stage3-smoke stage4-up stage4-smoke stage5-up stage5-smoke stage6-up stage6-smoke ot stage7-up stage7-smoke backup restore rollback-governance rollback-policy failure-matrix prod-hardening-up prod-hardening-smoke
 
 install:
 	python3 -m pip install -r requirements.txt
+
+backup:
+	bash scripts/backup_all.sh
+
+restore:
+	bash scripts/restore_all.sh
+
+rollback-governance:
+	bash scripts/rollback_governance.sh $(VERSION)
+
+rollback-policy:
+	bash scripts/rollback_policy.sh $(POLICY_ID)
+
+failure-matrix:
+	bash scripts/failure_matrix.sh
+
+soak-pure:
+	bash scripts/soak_pure_stack.sh
+
+prod-hardening-up:
+	docker-compose up -d --build
+
+prod-hardening-smoke:
+	bash scripts/prod_hardening_smoke.sh
 
 api:
 	uvicorn app.api.main:app --host 0.0.0.0 --port 8003 --reload

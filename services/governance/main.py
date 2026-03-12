@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from services.governance.routers import corridor, mode, governance
 from services.governance.utils.io import init_files
+from services.governance.db.session import init_db
 
 app = FastAPI(title="Governance Control Plane")
 
 init_files()
+init_db()
 
 app.add_middleware(
     CORSMiddleware,

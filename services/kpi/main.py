@@ -1,14 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
-
-from services.kpi.routers.kpi import router as kpi_router
+from services.kpi.db.session import init_db
 
 app = FastAPI(
     title="GCO KPI Ingestion Service",
     description="Standalone FastAPI microservice for KPI Ingestion",
     version="1.0.0"
 )
+
+init_db()
 
 allow_origins = os.getenv("ALLOW_ORIGINS", "*").split(",")
 

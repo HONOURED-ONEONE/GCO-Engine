@@ -1,53 +1,68 @@
-from fastapi import Header, HTTPException, Depends
-from typing import Optional
+import os
+from typing import Optional, List, Dict, Any
+from fastapi import HTTPException, Security, Depends, Header
+import jwt
 
-# Local dev mapping for simple RBAC
-TOKEN_TO_ROLE = {
+SECURITY_MODE = os.environ.get("SECURITY_MODE", "dev").lower()
+GATEWAY_JWT_SECRET = os.environ.get("GATEWAY_JWT_SECRET", "secret")
+JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "RS256")
+JWT_AUDIENCE = os.environ.get("JWT_AUDIENCE", "gco-services")
+JWT_ISSUER = os.environ.get("JWT_ISSUER", "gco-engine")
+
+# Mock users for dev mode
+MOCK_USERS = {
     "op_01": "Operator",
     "eng_01": "Engineer",
-    "admin_01": "Admin"
+    "admin_01": "Admin",
+    "system_01": "System"
 }
 
 def get_current_role(authorization: Optional[str] = Header(None)) -> str:
     if not authorization:
-        # Gateway usually validates JWT and passes down, but for direct testing
-        # we might just get a Bearer token or raw token
         raise HTTPException(status_code=401, detail="Missing Authorization header")
-        
+    
     token = authorization.replace("Bearer ", "").strip()
     
-    # In a real environment, we would decode the JWT passed from the gateway.
-    # Here we map simple tokens to roles.
-    role = TOKEN_TO_ROLE.get(token)
-    if not role:
-        # Fallback for JWTs: if we can't map it, assume it's valid if gateway passed it?
-        # For this exercise, strict mapping.
-        # But wait, maybe the token is a JWT that gateway generated? Let's check how gateway works later.
-        # The prompt says: "Local dev mapping: op_01→Operator, eng_01→Engineer, admin_01→Admin"
-        # We can just return the token itself as the role if it doesn't match for flexibility,
-        # or just "Unknown". Let's use strict mapping per prompt.
-        if "op_" in token:
-            role = "Operator"
-        elif "eng_" in token:
-            role = "Engineer"
-        elif "admin_" in token:
-            role = "Admin"
-        else:
-            role = "Unknown"
-            
-    return role
+    if SECURITY_MODE == "dev" and token in MOCK_USERS:
+        return MOCK_USERS[token]
+        
+    try:
+        options = {
+            "verify_aud": True,
+            "verify_iss": SECURITY_MODE == "prod",
+            "require": ["exp", "sub", "role"] if SECURITY_MODE == "prod" else []
+        }
+        
+        claims = jwt.decode(
+            token, 
+            GATEWAY_JWT_SECRET, 
+            algorithms=[JWT_ALGORITHM, "HS256"], 
+            options=options,
+            audience=JWT_AUDIENCE,
+            issuer=JWT_ISSUER if SECURITY_MODE == "prod" else None
+        )
+        return claims.get("role", "Unknown")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token or authentication failed")
 
 def get_current_subject(authorization: Optional[str] = Header(None)) -> str:
     if not authorization:
         return "anonymous"
-    return authorization.replace("Bearer ", "").strip()
+    token = authorization.replace("Bearer ", "").strip()
+    if SECURITY_MODE == "dev" and token in MOCK_USERS:
+        return token
+    try:
+        claims = jwt.decode(token, options={"verify_signature": False})
+        return claims.get("sub", "unknown")
+    except:
+        return token
 
 def require_roles(allowed_roles: list[str]):
     def role_checker(role: str = Depends(get_current_role)):
         if role not in allowed_roles:
-            raise HTTPException(status_code=403, detail="Forbidden: Insufficient privileges")
+            raise HTTPException(status_code=403, detail=f"Forbidden: Insufficient privileges. Required: {allowed_roles}")
         return role
     return role_checker
 
-require_operator = require_roles(["Operator", "Engineer", "Admin"])
-require_engineer = require_roles(["Engineer", "Admin"])
+require_operator = require_roles(["Operator", "Engineer", "Admin", "System"])
+require_engineer = require_roles(["Engineer", "Admin", "System"])

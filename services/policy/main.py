@@ -3,8 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 from .routers.policy import router
+from services.policy.db.session import init_db
 
 app = FastAPI(title="GCO Policy/MARL Service")
+
+init_db()
 
 allow_origins = os.getenv("ALLOW_ORIGINS", "*").split(",")
 app.add_middleware(

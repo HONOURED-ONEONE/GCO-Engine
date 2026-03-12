@@ -22,3 +22,8 @@ matplotlib
 reportlab
 PyYAML
 filelock==3.12.3
+sqlalchemy
+alembic
+psycopg2-binary
+sqlite-utils
+PyJWT[crypto]

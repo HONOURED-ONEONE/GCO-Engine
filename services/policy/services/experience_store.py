@@ -2,7 +2,10 @@ import json
 import os
 from filelock import FileLock
 from datetime import datetime
-from ..utils.metrics import metrics
+from services.policy.utils.metrics import metrics
+from services.policy.db.session import SessionLocal, is_db_enabled
+from services.policy.db.models import ExperienceEntry
+from services.policy.repositories.experience_repository import ExperienceRepository
 
 STORE_FILE = "data/experience_store.json"
 LOCK_FILE = "data/experience_store.lock"
@@ -28,6 +31,33 @@ def _save_store(data):
         json.dump(data, f, indent=2)
 
 def add_window(key: str, items: list, weights_at_time: dict, decay_map: dict):
+    if is_db_enabled():
+        with SessionLocal() as db:
+            repo = ExperienceRepository(db)
+            now = datetime.utcnow()
+            for item in items:
+                it = item.dict() if hasattr(item, "dict") else item
+                entry = ExperienceEntry(
+                    key=key,
+                    batch_id=it.get("batch_id"),
+                    energy_kwh=it.get("energy_kwh"),
+                    yield_pct=it.get("yield_pct"),
+                    quality_deviation=it.get("quality_deviation"),
+                    ingested_at=now,
+                    anomaly_flag=it.get("anomaly_flag", False),
+                    hash=it.get("hash"),
+                    weights_at_time=weights_at_time,
+                    features={
+                        "trend_energy": 0.0,
+                        "trend_yield": 0.0,
+                        "anomaly": 1 if it.get("quality_deviation") else 0
+                    }
+                )
+                repo.add(entry)
+            
+            metrics["store_sizes"] = repo.total_count()
+            return
+
     with FileLock(LOCK_FILE):
         store = _load_store()
         if key not in store["by_key"]:
@@ -36,7 +66,6 @@ def add_window(key: str, items: list, weights_at_time: dict, decay_map: dict):
         for item in items:
             it = item.dict() if hasattr(item, "dict") else item
             it["weights_at_time"] = weights_at_time
-            # compute features
             it["features"] = {
                 "trend_energy": 0.0,
                 "trend_yield": 0.0,
@@ -44,14 +73,35 @@ def add_window(key: str, items: list, weights_at_time: dict, decay_map: dict):
             }
             store["by_key"][key].append(it)
         
-        # Keep bounded length
         store["by_key"][key] = store["by_key"][key][-100:]
         store["meta"]["last_update"] = datetime.utcnow().isoformat()
-        
         _save_store(store)
         metrics["store_sizes"] = sum(len(v) for v in store["by_key"].values())
 
 def get_experiences(key: str, limit: int = 100):
+    if is_db_enabled():
+        with SessionLocal() as db:
+            repo = ExperienceRepository(db)
+            entries = repo.get_by_key(key, limit)
+            # reverse to match old behavior (last n, in order?)
+            # Old code: store["by_key"][key][-limit:]
+            # My repo: order_by ingested_at.desc().limit(limit)
+            # So I should reverse it.
+            items = []
+            for e in entries:
+                items.append({
+                    "batch_id": e.batch_id,
+                    "energy_kwh": e.energy_kwh,
+                    "yield_pct": e.yield_pct,
+                    "quality_deviation": e.quality_deviation,
+                    "ingested_at": e.ingested_at.isoformat() + "Z",
+                    "anomaly_flag": e.anomaly_flag,
+                    "hash": e.hash,
+                    "weights_at_time": e.weights_at_time,
+                    "features": e.features
+                })
+            return items[::-1]
+
     store = _load_store()
     return store.get("by_key", {}).get(key, [])[-limit:]
 

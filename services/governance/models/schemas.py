@@ -189,3 +189,10 @@ class CorridorDiffResponse(BaseModel):
     to_version: str
     changes: Dict[str, Dict[str, Any]]
     impact_hints: Dict[str, str]
+
+class CorridorRollbackRequest(BaseModel):
+    target_version: str
+
+class CorridorRollbackResponse(BaseModel):
+    status: str
+    message: str
