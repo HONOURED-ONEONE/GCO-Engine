@@ -1,0 +1,19 @@
+id: "S-NORMAL"
+name: "Normal Operating Conditions"
+description: "Baseline scenario with minimal noise and no drift."
+initial_state:
+  temperature: 25.0
+  flow: 10.0
+  energy_rate: 0.0
+parameters:
+  thermal_inertia: 0.85
+  yield_base: 98.0
+  temp_optimal: 70.0
+  quality_limit: 90.0
+  temp_upper: 90.0
+disturbance_model:
+  noise: 0.5
+  drift: 0.0
+kpi_formulas:
+  energy: "sum(energy_rate)"
+  yield: "yield_base - avg_temp_dev"

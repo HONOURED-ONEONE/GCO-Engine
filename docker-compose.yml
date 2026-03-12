@@ -12,6 +12,8 @@ services:
       LLM_BASE:        http://llm:8004
       KPI_BASE:        http://kpi:8005
       POLICY_BASE:     http://policy:8006
+      TWIN_BASE:       http://twin:8007
+      PILOT_BASE:      http://twin:8007
       EVIDENCE_BASE:   http://evidence:8008
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -26,6 +28,7 @@ services:
       - llm
       - kpi
       - policy
+      - twin
 
   opa:
     image: openpolicyagent/opa:latest
@@ -111,6 +114,24 @@ services:
       - "8006:8006"
     healthcheck:
       test: ["CMD","curl","-f","http://localhost:8006/"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
+  twin:
+    build: .
+    command: uvicorn services.twin.main:app --host 0.0.0.0 --port 8007 --reload
+    environment:
+      GOVERNANCE_BASE: "http://governance:8001"
+      OPTIMIZER_BASE: "http://optimizer:8002"
+      ALLOW_ORIGINS: "*"
+    volumes:
+      - ./twin/scenarios:/app/twin/scenarios
+      - ./data:/app/data
+    ports:
+      - "8007:8007"
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:8007/"]
       interval: 10s
       timeout: 2s
       retries: 5

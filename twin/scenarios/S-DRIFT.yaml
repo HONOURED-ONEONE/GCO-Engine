@@ -1,0 +1,19 @@
+id: "S-DRIFT"
+name: "Gradual Sensor Drift"
+description: "Simulates thermal drift or fouling over time."
+initial_state:
+  temperature: 25.0
+  flow: 10.0
+  energy_rate: 0.0
+parameters:
+  thermal_inertia: 0.8
+  yield_base: 95.0
+  temp_optimal: 70.0
+  quality_limit: 88.0
+  temp_upper: 88.0
+disturbance_model:
+  noise: 0.8
+  drift: 0.05
+kpi_formulas:
+  energy: "sum(energy_rate)"
+  yield: "yield_base - avg_temp_dev"

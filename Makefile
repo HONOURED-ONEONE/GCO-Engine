@@ -1,4 +1,4 @@
-.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot governance up stage0-smoke gateway opa stage1-gateway stage1-smoke optimizer stage1-opt-smoke llm stage2-up stage2-smoke
+.PHONY: install api ui demo judge-demo evidence-pack clean-demo test twin pilot soak safety-pack pilot-report clean-pilot governance up stage0-smoke gateway opa stage1-gateway stage1-smoke optimizer stage1-opt-smoke llm stage2-up stage2-smoke stage3-up stage3-smoke stage4-up stage4-smoke stage5-up stage5-smoke stage6-up stage6-smoke
 
 install:
 	python3 -m pip install -r requirements.txt
@@ -23,6 +23,9 @@ kpi:
 
 policy:
 	uvicorn services.policy.main:app --host 0.0.0.0 --port 8006 --reload
+
+twin-service:
+	uvicorn services.twin.main:app --host 0.0.0.0 --port 8007 --reload
 
 opa:
 	docker run --rm -p 8181:8181 -v ./services/opa/policies:/policies:ro openpolicyagent/opa:latest run --server --addr=0.0.0.0:8181 /policies
@@ -64,10 +67,16 @@ evidence:
 	uvicorn services.evidence.main:app --host 0.0.0.0 --port 8008 --reload
 
 stage5-up:
-	docker-compose up --build gateway governance optimizer kpi policy api evidence opa llm twin
+	docker-compose up --build gateway governance optimizer kpi policy api evidence opa llm
 
 stage5-smoke:
 	bash scripts/stage5_evidence_smoke.sh
+
+stage6-up:
+	docker-compose up --build gateway governance optimizer kpi policy api evidence opa llm twin
+
+stage6-smoke:
+	bash scripts/stage6_twin_pilot_smoke.sh
 
 ui:
 	streamlit run app/frontend/app.py --server.port 8501
