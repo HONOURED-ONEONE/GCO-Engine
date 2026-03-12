@@ -15,6 +15,7 @@ services:
       TWIN_BASE:       http://twin:8007
       PILOT_BASE:      http://twin:8007
       EVIDENCE_BASE:   http://evidence:8008
+      OT_BASE:         http://ot:8009
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
@@ -178,6 +179,29 @@ services:
       - "8008:8008"
     healthcheck:
       test: ["CMD","curl","-f","http://localhost:8008/"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
+  ot:
+    build:
+      context: services/ot
+      dockerfile: Dockerfile
+    command: uvicorn services.ot.main:app --host 0.0.0.0 --port 8009 --reload
+    environment:
+      GOVERNANCE_BASE: "http://governance:8001"
+      FEATURE_SIMULATED_OPCUA: "true"
+      FEATURE_GUARDED: "false"
+      MIN_WRITE_INTERVAL_SEC: "10"
+      READBACK_TOLERANCE_TEMPERATURE: "0.2"
+      READBACK_TOLERANCE_FLOW: "0.1"
+      ALLOW_ORIGINS: "*"
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8009:8009"
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:8009/"]
       interval: 10s
       timeout: 2s
       retries: 5

@@ -4,7 +4,7 @@ import uuid
 from typing import Optional
 import time
 import asyncio
-from .config import GOVERNANCE_BASE, OPTIMIZER_BASE, MONOLITH_BASE, LLM_BASE, KPI_BASE, POLICY_BASE, TWIN_BASE, PILOT_BASE, EVIDENCE_BASE, GATEWAY_SYSTEM_TOKEN
+from .config import GOVERNANCE_BASE, OPTIMIZER_BASE, MONOLITH_BASE, LLM_BASE, KPI_BASE, POLICY_BASE, TWIN_BASE, PILOT_BASE, EVIDENCE_BASE, OT_BASE, GATEWAY_SYSTEM_TOKEN
 from .security import extract_claims
 from .opa_client import evaluate
 
@@ -74,6 +74,9 @@ async def proxy(path: str, request: Request):
     elif full_path.startswith("/evidence/"):
         upstream_base = EVIDENCE_BASE
         service_name = "evidence"
+    elif full_path.startswith("/ot/"):
+        upstream_base = OT_BASE
+        service_name = "ot"
     else:
         upstream_base = MONOLITH_BASE
         service_name = "monolith"

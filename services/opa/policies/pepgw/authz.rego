@@ -138,6 +138,106 @@ allow {
 }
 
 allow {
+  route_is("/ot/config")
+  role == "Admin"
+}
+
+allow {
+  route_is("/ot/arm")
+  role == "Operator"
+}
+
+allow {
+  route_is("/ot/arm")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/arm")
+  role == "Admin"
+}
+
+allow {
+  route_is("/ot/disarm")
+  role == "Operator"
+}
+
+allow {
+  route_is("/ot/disarm")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/disarm")
+  role == "Admin"
+}
+
+allow {
+  route_is("/ot/shadow/write")
+  role == "Operator"
+}
+
+allow {
+  route_is("/ot/shadow/write")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/shadow/write")
+  role == "Admin"
+}
+
+allow {
+  route_is("/ot/guarded/write")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/guarded/write")
+  role == "Admin"
+}
+
+allow {
+  route_is("/ot/status")
+  role == "Operator"
+}
+
+allow {
+  route_is("/ot/status")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/status")
+  role == "Admin"
+}
+
+allow {
+  route_is("/ot/alarms")
+  role == "Operator"
+}
+
+allow {
+  route_is("/ot/alarms")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/alarms")
+  role == "Admin"
+}
+
+allow {
+  route_is("/ot/health")
+  role == "Engineer"
+}
+
+allow {
+  route_is("/ot/health")
+  role == "Admin"
+}
+
+allow {
   claims.scopes[_] == "corridor:approve"
   path == "/corridor/approve"
   method == "POST"

@@ -9,6 +9,7 @@ POLICY_BASE = os.environ.get("POLICY_BASE", "http://localhost:8006")
 TWIN_BASE = os.environ.get("TWIN_BASE", "http://localhost:8007")
 PILOT_BASE = os.environ.get("PILOT_BASE", "http://localhost:8007")
 EVIDENCE_BASE = os.environ.get("EVIDENCE_BASE", "http://localhost:8008")
+OT_BASE = os.environ.get("OT_BASE", "http://localhost:8009")
 OPA_BASE = os.environ.get("OPA_BASE", "http://localhost:8181")
 
 GATEWAY_JWKS_URL = os.environ.get("GATEWAY_JWKS_URL")
